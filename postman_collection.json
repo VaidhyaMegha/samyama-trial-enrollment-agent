@@ -1,0 +1,217 @@
+{
+  "info": {
+    "name": "Trial Enrollment Agent API",
+    "description": "Test collection for Clinical Trial Enrollment Agent Lambda functions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Parse Criteria - Simple Age",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"criteria_text\": \"Patients must be between 18 and 65 years old\",\n  \"trial_id\": \"test-trial-001\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": [
+            "gt7dlyqj78",
+            "execute-api",
+            "us-east-1",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            "prod",
+            "parse-criteria"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Parse Criteria - Diabetes Trial",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"criteria_text\": \"Inclusion Criteria:\\n- Patients must be between 18 and 65 years old\\n- Diagnosis of Type 2 Diabetes Mellitus\\n- HbA1c between 7% and 10%\\n\\nExclusion Criteria:\\n- Chronic kidney disease stage 4 or higher\\n- Pregnant or breastfeeding\",\n  \"trial_id\": \"diabetes-trial-2024\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": [
+            "gt7dlyqj78",
+            "execute-api",
+            "us-east-1",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            "prod",
+            "parse-criteria"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Parse Criteria - Cancer Trial",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"criteria_text\": \"Inclusion Criteria:\\n- Age 40 years or older\\n- Diagnosed with Stage II breast cancer\\n- ECOG performance status 0-1\\n\\nExclusion Criteria:\\n- Prior chemotherapy within 6 months\\n- Active infection\",\n  \"trial_id\": \"cancer-trial-2024\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": [
+            "gt7dlyqj78",
+            "execute-api",
+            "us-east-1",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            "prod",
+            "parse-criteria"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Check Criteria - Patient 001 (Eligible)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patient_id\": \"patient-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"demographics\",\n      \"description\": \"Age between 18 and 65 years\",\n      \"attribute\": \"age\",\n      \"operator\": \"between\",\n      \"value\": [18, 65],\n      \"unit\": \"years\",\n      \"fhir_resource\": \"Patient\",\n      \"fhir_path\": \"Patient.birthDate\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+          "protocol": "https",
+          "host": [
+            "gt7dlyqj78",
+            "execute-api",
+            "us-east-1",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            "prod",
+            "check-criteria"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Check Criteria - Patient 002 (Not Eligible - Too Young)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patient_id\": \"patient-002\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"demographics\",\n      \"description\": \"Age between 18 and 65 years\",\n      \"attribute\": \"age\",\n      \"operator\": \"between\",\n      \"value\": [18, 65]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+          "protocol": "https",
+          "host": [
+            "gt7dlyqj78",
+            "execute-api",
+            "us-east-1",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            "prod",
+            "check-criteria"
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Check Criteria - Multiple Criteria (Diabetes)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patient_id\": \"patient-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"demographics\",\n      \"description\": \"Age between 18 and 65 years\",\n      \"attribute\": \"age\",\n      \"operator\": \"between\",\n      \"value\": [18, 65]\n    },\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"condition\",\n      \"description\": \"Type 2 Diabetes Mellitus\",\n      \"attribute\": \"diabetes\",\n      \"operator\": \"contains\",\n      \"value\": \"Type 2 Diabetes Mellitus\",\n      \"fhir_resource\": \"Condition\",\n      \"coding\": {\n        \"system\": \"http://snomed.info/sct\",\n        \"code\": \"44054006\"\n      }\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+          "protocol": "https",
+          "host": [
+            "gt7dlyqj78",
+            "execute-api",
+            "us-east-1",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            "prod",
+            "check-criteria"
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/health",
+          "protocol": "https",
+          "host": [
+            "gt7dlyqj78",
+            "execute-api",
+            "us-east-1",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            "prod",
+            "health"
+          ]
+        }
+      }
+    }
+  ]
+}

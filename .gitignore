@@ -1,0 +1,109 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+
+# AWS
+.aws-sam/
+samconfig.toml
+*.zip
+cdk.out/
+.cdk.staging/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Secrets (never commit)
+*credentials*
+*secrets*
+*.pem
+*.key
+
+# Data files (patient data should never be in version control)
+data/real_patients/
+*.csv
+*.parquet
+
+# CDK
+node_modules/
+package-lock.json
+cdk.context.json
+
+# Lambda deployment packages
+lambda_package/
+function.zip
+
+# Lambda dependencies installed with pip install -t
+src/lambda/*/aws_lambda_powertools*/
+src/lambda/*/aws_xray_sdk*/
+src/lambda/*/botocore*/
+src/lambda/*/boto3*/
+src/lambda/*/requests*/
+src/lambda/*/urllib3*/
+src/lambda/*/certifi*/
+src/lambda/*/charset_normalizer*/
+src/lambda/*/idna*/
+src/lambda/*/jmespath*/
+src/lambda/*/typing_extensions.py
+src/lambda/*/python_dateutil*/
+src/lambda/*/dateutil*/
+src/lambda/*/six.py
+src/lambda/*/wrapt*/
+src/lambda/*/*.dist-info/
+src/lambda/*/bin/
+src/lambda/*/s3transfer*/
+
+# Test outputs
+response.json
+test-*.json
+
+# Documentation builds
+docs/_build/
+site/
