@@ -107,3 +107,4 @@ test-*.json
 # Documentation builds
 docs/_build/
 site/
+docs/PRs/

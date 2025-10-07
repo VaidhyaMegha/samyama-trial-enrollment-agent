@@ -18,7 +18,7 @@ logger = Logger()
 tracer = Tracer()
 
 # FHIR endpoint configuration
-FHIR_ENDPOINT = os.environ.get('FHIR_ENDPOINT', 'http://localhost:8080/fhir')
+FHIR_ENDPOINT = os.environ.get('FHIR_ENDPOINT', 'http://localhost:8080/fhir').rstrip('/')  # Remove trailing slash
 USE_HEALTHLAKE = os.environ.get('USE_HEALTHLAKE', 'false').lower() == 'true'
 
 # Initialize AWS clients
