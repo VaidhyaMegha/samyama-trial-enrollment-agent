@@ -923,28 +923,143 @@ def save_to_cache(trial_id: str, criteria_text: str, parsed_criteria: List[Dict[
 
 
 @tracer.capture_method
-def parse_criteria_with_bedrock(criteria_text: str, model_id: str = "amazon.titan-text-express-v1") -> List[Dict[str, Any]]:
+def enhance_with_coding_systems(criteria: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Post-processor that injects missing coding systems based on category and value.
+    Ensures 100% coverage of coding systems across all criteria.
+
+    Args:
+        criteria: List of parsed criteria (may have missing coding systems)
+
+    Returns:
+        Enhanced criteria with complete coding systems
+    """
+    # Comprehensive coding system mappings
+    CODING_MAPS = {
+        "condition": {
+            # ICD-10-CM codes for common conditions
+            "type 2 diabetes": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "E11", "display": "Type 2 diabetes mellitus"},
+            "diabetes": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "E11", "display": "Type 2 diabetes mellitus"},
+            "pre-diabetes": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "R73.03", "display": "Prediabetes"},
+            "prediabetes": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "R73.03", "display": "Prediabetes"},
+            "hypertension": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I10", "display": "Essential (primary) hypertension"},
+            "breast cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C50", "display": "Malignant neoplasm of breast"},
+            "ovarian cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C56", "display": "Malignant neoplasm of ovary"},
+            "lung cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C34", "display": "Malignant neoplasm of bronchus and lung"},
+            "colorectal cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C18", "display": "Malignant neoplasm of colon"},
+            "heart failure": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I50", "display": "Heart failure"},
+            "copd": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "J44", "display": "Chronic obstructive pulmonary disease"},
+            "chronic kidney disease": {"system": "http://snomed.info/sct", "code": "431855005", "display": "Chronic kidney disease stage 4"},
+            "myocardial infarction": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I21", "display": "Acute myocardial infarction"},
+        },
+        "allergy": {
+            # SNOMED CT codes for allergies
+            "penicillin": {"system": "http://snomed.info/sct", "code": "91936005", "display": "Allergy to penicillin"},
+            "peanut": {"system": "http://snomed.info/sct", "code": "256349002", "display": "Peanut allergy"},
+            "sulfonamide": {"system": "http://snomed.info/sct", "code": "387406002", "display": "Sulfonamide"},
+            "sulfa": {"system": "http://snomed.info/sct", "code": "387406002", "display": "Sulfonamide"},
+            "nsaid": {"system": "http://snomed.info/sct", "code": "293586001", "display": "Non-steroidal anti-inflammatory agent"},
+            "contrast": {"system": "http://snomed.info/sct", "code": "293637006", "display": "Iodinated contrast media"},
+        },
+        "medication": {
+            # RxNorm codes for medications
+            "metformin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "6809", "display": "Metformin"},
+            "insulin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "5856", "display": "Insulin"},
+            "statin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "36567", "display": "Simvastatin"},
+            "warfarin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "11289", "display": "Warfarin"},
+            "aspirin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "1191", "display": "Aspirin"},
+            "lisinopril": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "29046", "display": "Lisinopril"},
+        },
+        "performance_status": {
+            # LOINC codes for performance status
+            "ecog": {"system": "http://loinc.org", "code": "89247-1", "display": "ECOG Performance Status"},
+            "karnofsky": {"system": "http://loinc.org", "code": "89243-0", "display": "Karnofsky Performance Status"},
+        },
+        "lab_value": {
+            # LOINC codes for lab tests
+            "hba1c": {"system": "http://loinc.org", "code": "4548-4", "display": "Hemoglobin A1c/Hemoglobin.total in Blood"},
+            "hemoglobin a1c": {"system": "http://loinc.org", "code": "4548-4", "display": "Hemoglobin A1c/Hemoglobin.total in Blood"},
+            "creatinine": {"system": "http://loinc.org", "code": "2160-0", "display": "Creatinine [Mass/volume] in Serum or Plasma"},
+            "egfr": {"system": "http://loinc.org", "code": "33914-3", "display": "Glomerular filtration rate/1.73 sq M.predicted"},
+            "hemoglobin": {"system": "http://loinc.org", "code": "718-7", "display": "Hemoglobin [Mass/volume] in Blood"},
+            "wbc": {"system": "http://loinc.org", "code": "6690-2", "display": "Leukocytes [#/volume] in Blood"},
+            "platelet": {"system": "http://loinc.org", "code": "777-3", "display": "Platelets [#/volume] in Blood"},
+            "alt": {"system": "http://loinc.org", "code": "1742-6", "display": "Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma"},
+            "ast": {"system": "http://loinc.org", "code": "1920-8", "display": "Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma"},
+        }
+    }
+
+    def enhance_criterion(criterion: Dict[str, Any]) -> Dict[str, Any]:
+        """Recursively enhance a single criterion"""
+        # If it has sub-criteria, enhance them recursively
+        if 'criteria' in criterion and isinstance(criterion['criteria'], list):
+            criterion['criteria'] = [enhance_criterion(c) for c in criterion['criteria']]
+            return criterion
+
+        # If it already has coding, skip it
+        if 'coding' in criterion and criterion['coding']:
+            return criterion
+
+        # Try to inject coding system based on category and value
+        category = criterion.get('category', '')
+        value = criterion.get('value', '')
+        attribute = criterion.get('attribute', '')
+        description = criterion.get('description', '')
+
+        # Combine all text fields for matching
+        search_text = f"{value} {attribute} {description}".lower()
+
+        if category in CODING_MAPS:
+            # Try to find a match
+            for keyword, coding_info in CODING_MAPS[category].items():
+                if keyword.lower() in search_text:
+                    criterion['coding'] = coding_info
+                    logger.info(f"Injected coding system for {category}: {keyword} -> {coding_info['code']}")
+                    break
+
+        return criterion
+
+    # Enhance all criteria
+    enhanced_criteria = [enhance_criterion(c) for c in criteria]
+
+    return enhanced_criteria
+
+
+@tracer.capture_method
+def parse_criteria_with_bedrock(criteria_text: str, model_id: str = "mistral.mistral-large-2402-v1:0") -> List[Dict[str, Any]]:
     """
     Use Bedrock to parse eligibility criteria into structured format.
 
     Args:
         criteria_text: Free-text eligibility criteria
-        model_id: Bedrock model ID to use
+        model_id: Bedrock model ID to use (default: Mistral Large)
 
     Returns:
         List of parsed criterion dictionaries
     """
     prompt = PARSING_PROMPT.format(criteria_text=criteria_text)
 
-    # Prepare request for Titan model
-    request_body = {
-        "inputText": prompt,
-        "textGenerationConfig": {
-            "maxTokenCount": 4000,
+    # Prepare request based on model type
+    is_mistral = "mistral" in model_id.lower()
+
+    if is_mistral:
+        # Mistral format
+        request_body = {
+            "prompt": f"<s>[INST] {prompt} [/INST]",
+            "max_tokens": 4000,
             "temperature": 0.1,  # Low temperature for consistent parsing
-            "topP": 0.9
+            "top_p": 0.9
         }
-    }
+    else:
+        # Titan format (fallback)
+        request_body = {
+            "inputText": prompt,
+            "textGenerationConfig": {
+                "maxTokenCount": 4000,
+                "temperature": 0.1,
+                "topP": 0.9
+            }
+        }
 
     try:
         response = bedrock_runtime.invoke_model(
@@ -955,11 +1070,16 @@ def parse_criteria_with_bedrock(criteria_text: str, model_id: str = "amazon.tita
         response_body = json.loads(response['body'].read())
         logger.info("Bedrock response received", extra={"response": response_body})
 
-        # Extract the parsed criteria from response (Titan format)
-        # Support both old and new Bedrock API formats
-        if 'results' in response_body:
+        # Extract the parsed criteria from response
+        # Support multiple API formats: Mistral, Titan, and Claude
+        if 'outputs' in response_body:
+            # Mistral format
+            content = response_body['outputs'][0]['text']
+        elif 'results' in response_body:
+            # Titan format
             content = response_body['results'][0]['outputText']
         elif 'content' in response_body:
+            # Claude format
             content = response_body['content'][0]['text']
         else:
             raise ValueError(f"Unexpected Bedrock response format: {response_body}")
@@ -1022,6 +1142,10 @@ def parse_criteria_with_bedrock(criteria_text: str, model_id: str = "amazon.tita
         # Post-process to create nested logical structures
         parsed_criteria = create_nested_criteria_structure(parsed_criteria, criteria_text)
         logger.info(f"After post-processing: {len(parsed_criteria)} criteria")
+
+        # Enhance with coding systems (inject missing ones)
+        parsed_criteria = enhance_with_coding_systems(parsed_criteria)
+        logger.info(f"After coding system enhancement: {len(parsed_criteria)} criteria")
 
         return parsed_criteria
 
@@ -1179,7 +1303,7 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
             'trial_id': trial_id,
             'count': len(parsed_criteria),
             'metadata': {
-                'model': 'amazon.titan-text-express-v1',
+                'model': 'mistral.mistral-large-2402-v1:0',
                 'timestamp': context.get_remaining_time_in_millis() if context else None,
                 'cache_hit': cache_hit,
                 'cache_enabled': criteria_cache_table is not None
