@@ -83,6 +83,139 @@ Output:
   }}
 }}
 
+Input: "Serum creatinine <1.5 mg/dL"
+Output:
+{{
+  "type": "inclusion",
+  "category": "lab_value",
+  "description": "Serum creatinine <1.5 mg/dL",
+  "attribute": "creatinine",
+  "operator": "less_than",
+  "value": 1.5,
+  "unit": "mg/dL",
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueQuantity",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "2160-0",
+    "display": "Creatinine [Mass/volume] in Serum or Plasma"
+  }}
+}}
+
+Input: "eGFR ≥30 mL/min/1.73m2"
+Output:
+{{
+  "type": "inclusion",
+  "category": "lab_value",
+  "description": "eGFR ≥30 mL/min/1.73m2",
+  "attribute": "eGFR",
+  "operator": "greater_than",
+  "value": 30,
+  "unit": "mL/min/1.73m2",
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueQuantity",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "33914-3",
+    "display": "Glomerular filtration rate/1.73 sq M.predicted"
+  }}
+}}
+
+Input: "Hemoglobin ≥10 g/dL"
+Output:
+{{
+  "type": "inclusion",
+  "category": "lab_value",
+  "description": "Hemoglobin ≥10 g/dL",
+  "attribute": "hemoglobin",
+  "operator": "greater_than",
+  "value": 10,
+  "unit": "g/dL",
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueQuantity",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "718-7",
+    "display": "Hemoglobin [Mass/volume] in Blood"
+  }}
+}}
+
+Input: "WBC count ≥3000/μL"
+Output:
+{{
+  "type": "inclusion",
+  "category": "lab_value",
+  "description": "WBC count ≥3000/μL",
+  "attribute": "wbc",
+  "operator": "greater_than",
+  "value": 3000,
+  "unit": "/μL",
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueQuantity",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "6690-2",
+    "display": "Leukocytes [#/volume] in Blood"
+  }}
+}}
+
+Input: "Platelet count ≥100,000/μL"
+Output:
+{{
+  "type": "inclusion",
+  "category": "lab_value",
+  "description": "Platelet count ≥100,000/μL",
+  "attribute": "platelets",
+  "operator": "greater_than",
+  "value": 100000,
+  "unit": "/μL",
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueQuantity",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "777-3",
+    "display": "Platelets [#/volume] in Blood"
+  }}
+}}
+
+Input: "ALT <3x upper limit of normal"
+Output:
+{{
+  "type": "inclusion",
+  "category": "lab_value",
+  "description": "ALT <3x ULN",
+  "attribute": "alt",
+  "operator": "less_than",
+  "value": 120,
+  "unit": "U/L",
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueQuantity",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "1742-6",
+    "display": "Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma"
+  }}
+}}
+
+Input: "AST <100 U/L"
+Output:
+{{
+  "type": "inclusion",
+  "category": "lab_value",
+  "description": "AST <100 U/L",
+  "attribute": "ast",
+  "operator": "less_than",
+  "value": 100,
+  "unit": "U/L",
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueQuantity",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "1920-8",
+    "display": "Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma"
+  }}
+}}
+
 Input: "Patients must NOT have chronic kidney disease stage 4 or higher"
 Output:
 {{
@@ -98,6 +231,96 @@ Output:
     "system": "http://snomed.info/sct",
     "code": "431855005",
     "display": "Chronic kidney disease stage 4"
+  }}
+}}
+
+Input: "Diagnosis of Type 2 Diabetes Mellitus"
+Output:
+{{
+  "type": "inclusion",
+  "category": "condition",
+  "description": "Type 2 Diabetes Mellitus",
+  "attribute": "diagnosis",
+  "operator": "contains",
+  "value": "Type 2 Diabetes",
+  "fhir_resource": "Condition",
+  "fhir_path": "Condition.code",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "E11",
+    "display": "Type 2 diabetes mellitus"
+  }}
+}}
+
+Input: "History of hypertension"
+Output:
+{{
+  "type": "inclusion",
+  "category": "condition",
+  "description": "Hypertension",
+  "attribute": "diagnosis",
+  "operator": "contains",
+  "value": "hypertension",
+  "fhir_resource": "Condition",
+  "fhir_path": "Condition.code",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "I10",
+    "display": "Essential (primary) hypertension"
+  }}
+}}
+
+Input: "No history of breast cancer"
+Output:
+{{
+  "type": "exclusion",
+  "category": "condition",
+  "description": "No breast cancer",
+  "attribute": "diagnosis",
+  "operator": "not_contains",
+  "value": "breast cancer",
+  "fhir_resource": "Condition",
+  "fhir_path": "Condition.code",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "C50",
+    "display": "Malignant neoplasm of breast"
+  }}
+}}
+
+Input: "Diagnosed with heart failure"
+Output:
+{{
+  "type": "inclusion",
+  "category": "condition",
+  "description": "Heart failure",
+  "attribute": "diagnosis",
+  "operator": "contains",
+  "value": "heart failure",
+  "fhir_resource": "Condition",
+  "fhir_path": "Condition.code",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "I50",
+    "display": "Heart failure"
+  }}
+}}
+
+Input: "No chronic obstructive pulmonary disease"
+Output:
+{{
+  "type": "exclusion",
+  "category": "condition",
+  "description": "No COPD",
+  "attribute": "diagnosis",
+  "operator": "not_contains",
+  "value": "COPD",
+  "fhir_resource": "Condition",
+  "fhir_path": "Condition.code",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "J44",
+    "display": "Chronic obstructive pulmonary disease"
   }}
 }}
 
@@ -183,6 +406,63 @@ Output:
   "status": "active"
 }}
 
+Input: "Taking warfarin for anticoagulation"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication",
+  "description": "Taking warfarin",
+  "attribute": "medication_name",
+  "operator": "contains",
+  "value": "warfarin",
+  "fhir_resource": "MedicationStatement",
+  "fhir_path": "MedicationStatement.medicationCodeableConcept",
+  "status": "active",
+  "coding": {{
+    "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+    "code": "11289",
+    "display": "Warfarin"
+  }}
+}}
+
+Input: "Currently on ACE inhibitor"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication",
+  "description": "ACE inhibitor use",
+  "attribute": "medication_class",
+  "operator": "contains",
+  "value": "lisinopril",
+  "fhir_resource": "MedicationStatement",
+  "fhir_path": "MedicationStatement.medicationCodeableConcept",
+  "status": "active",
+  "coding": {{
+    "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+    "code": "29046",
+    "display": "Lisinopril"
+  }}
+}}
+
+Input: "On aspirin therapy"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication",
+  "description": "Aspirin therapy",
+  "attribute": "medication_name",
+  "operator": "contains",
+  "value": "aspirin",
+  "fhir_resource": "MedicationStatement",
+  "fhir_path": "MedicationStatement.medicationCodeableConcept",
+  "status": "active",
+  "coding": {{
+    "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+    "code": "1191",
+    "display": "Aspirin"
+  }}
+}}
+
 Input: "No allergy to penicillin"
 Output:
 {{
@@ -211,6 +491,60 @@ Output:
     "system": "http://snomed.info/sct",
     "code": "256349002",
     "display": "Peanut allergy"
+  }}
+}}
+
+Input: "No allergy to sulfa drugs"
+Output:
+{{
+  "type": "exclusion",
+  "category": "allergy",
+  "description": "No allergy to sulfa drugs",
+  "attribute": "allergen",
+  "operator": "not_contains",
+  "value": "sulfonamide",
+  "fhir_resource": "AllergyIntolerance",
+  "fhir_path": "AllergyIntolerance.code",
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "387406002",
+    "display": "Sulfonamide"
+  }}
+}}
+
+Input: "Allergic to NSAIDs"
+Output:
+{{
+  "type": "exclusion",
+  "category": "allergy",
+  "description": "Allergy to NSAIDs",
+  "attribute": "allergen",
+  "operator": "contains",
+  "value": "NSAID",
+  "fhir_resource": "AllergyIntolerance",
+  "fhir_path": "AllergyIntolerance.code",
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "293586001",
+    "display": "Non-steroidal anti-inflammatory agent"
+  }}
+}}
+
+Input: "No contrast dye allergy"
+Output:
+{{
+  "type": "exclusion",
+  "category": "allergy",
+  "description": "No contrast dye allergy",
+  "attribute": "allergen",
+  "operator": "not_contains",
+  "value": "contrast",
+  "fhir_resource": "AllergyIntolerance",
+  "fhir_path": "AllergyIntolerance.code",
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "293637006",
+    "display": "Iodinated contrast media"
   }}
 }}
 
@@ -697,25 +1031,52 @@ def parse_criteria_with_bedrock(criteria_text: str, model_id: str = "amazon.tita
 
 
 @tracer.capture_method
-def validate_criterion(criterion: Dict[str, Any]) -> bool:
+def validate_criterion(criterion: Dict[str, Any], is_nested: bool = False) -> bool:
     """
-    Validate that a parsed criterion has all required fields.
+    Recursively validate a criterion (simple or complex).
 
     Args:
         criterion: Parsed criterion dictionary
+        is_nested: Whether this is a nested criterion (for better error messages)
 
     Returns:
         True if valid, raises ValueError if invalid
     """
-    required_fields = ['type', 'category', 'description', 'attribute', 'operator', 'value']
+    # All criteria must have type (at root level or inherited)
+    if not is_nested and 'type' not in criterion:
+        raise ValueError("Missing required field: type")
+
+    # Validate type if present
+    if 'type' in criterion and criterion['type'] not in ['inclusion', 'exclusion']:
+        raise ValueError(f"Invalid type: {criterion['type']}. Must be 'inclusion' or 'exclusion'")
+
+    # Complex criterion validation
+    if 'criteria' in criterion and criterion['criteria']:
+        logic_op = criterion.get('logic_operator')
+        if not logic_op:
+            raise ValueError("Complex criterion must have 'logic_operator' field")
+        if logic_op not in ['AND', 'OR', 'NOT']:
+            raise ValueError(f"Invalid logic_operator: {logic_op}. Must be 'AND', 'OR', or 'NOT'")
+        if logic_op == 'NOT' and len(criterion['criteria']) != 1:
+            raise ValueError("NOT operator requires exactly one sub-criterion")
+        if not criterion['criteria']:
+            raise ValueError("Complex criterion must have non-empty 'criteria' array")
+
+        # Recursively validate sub-criteria
+        for idx, sub_criterion in enumerate(criterion['criteria']):
+            try:
+                validate_criterion(sub_criterion, is_nested=True)
+            except ValueError as e:
+                raise ValueError(f"Invalid sub-criterion[{idx}]: {str(e)}")
+
+        return True
+
+    # Simple criterion validation
+    required_fields = ['category', 'description', 'attribute', 'operator', 'value']
 
     for field in required_fields:
         if field not in criterion:
             raise ValueError(f"Missing required field: {field}")
-
-    # Validate type
-    if criterion['type'] not in ['inclusion', 'exclusion']:
-        raise ValueError(f"Invalid type: {criterion['type']}. Must be 'inclusion' or 'exclusion'")
 
     # Validate operator
     valid_operators = [

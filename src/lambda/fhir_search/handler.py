@@ -21,6 +21,9 @@ tracer = Tracer()
 FHIR_ENDPOINT = os.environ.get('FHIR_ENDPOINT', 'http://localhost:8080/fhir').rstrip('/')  # Remove trailing slash
 USE_HEALTHLAKE = os.environ.get('USE_HEALTHLAKE', 'false').lower() == 'true'
 
+# Criteria evaluation configuration
+MAX_CRITERIA_DEPTH = int(os.environ.get('MAX_CRITERIA_DEPTH', '10'))
+
 # Initialize AWS clients
 if USE_HEALTHLAKE:
     healthlake_client = boto3.client('healthlake', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
@@ -559,7 +562,12 @@ def check_medication_criterion(patient_id: str, criterion: Dict[str, Any]) -> Di
                 matching_meds.append(med)
                 continue
 
-            # Match by name (fuzzy matching)
+            # Match by name (bidirectional fuzzy matching)
+            # Uses bidirectional substring matching to handle both:
+            # - Generic-to-brand: "statin" matches "atorvastatin"
+            # - Brand-to-generic: "atorvastatin" matches "statin therapy"
+            # Note: This intentionally does NOT match very short partial strings
+            # e.g., "met" will NOT match "metformin" (neither contains the other)
             if operator == 'contains':
                 if search_value in med_name_lower or med_name_lower in search_value:
                     matching_meds.append(med)
@@ -699,7 +707,12 @@ def check_allergy_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[
                 matching_allergies.append(allergy)
                 continue
 
-            # Match by allergen name
+            # Match by allergen name (bidirectional fuzzy matching)
+            # Uses bidirectional substring matching to handle both:
+            # - Generic-to-specific: "penicillin" matches "penicillin G"
+            # - Specific-to-generic: "amoxicillin" matches "penicillin allergy"
+            # Note: This intentionally does NOT match very short partial strings
+            # e.g., "pen" will NOT match "penicillin" (neither contains the other)
             if operator == 'contains':
                 if search_value in allergen_lower or allergen_lower in search_value:
                     matching_allergies.append(allergy)
@@ -819,14 +832,12 @@ def check_criterion(patient_id: str, criterion: Dict[str, Any], depth: int = 0) 
     Returns:
         Result dictionary with met status, reason, and evidence
     """
-    MAX_DEPTH = 10
-
     # Depth limit check
-    if depth > MAX_DEPTH:
-        logger.error(f"Maximum recursion depth ({MAX_DEPTH}) exceeded")
+    if depth > MAX_CRITERIA_DEPTH:
+        logger.error(f"Maximum recursion depth ({MAX_CRITERIA_DEPTH}) exceeded")
         return {
             'met': False,
-            'reason': f"Maximum nesting depth ({MAX_DEPTH}) exceeded",
+            'reason': f"Maximum nesting depth ({MAX_CRITERIA_DEPTH}) exceeded",
             'evidence': None,
             'criterion': criterion
         }
