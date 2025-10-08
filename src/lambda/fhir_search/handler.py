@@ -385,18 +385,373 @@ def check_observation_criterion(patient_id: str, criterion: Dict[str, Any]) -> D
 
 
 @tracer.capture_method
-def check_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+def check_performance_status_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Check if patient meets a specific criterion.
+    Check performance status criteria (ECOG, Karnofsky).
 
     Args:
         patient_id: Patient identifier
-        criterion: Parsed criterion dictionary
+        criterion: Parsed criterion
+
+    Returns:
+        Result with met status and evidence
+    """
+    # Query Observation resources for performance status
+    params = {}
+
+    # Add coding if specified (LOINC code for performance status)
+    if 'coding' in criterion:
+        coding = criterion['coding']
+        params['code'] = f"{coding['system']}|{coding['code']}"
+
+    bundle = query_fhir_resource('Observation', patient_id, params)
+
+    observations = []
+    if 'entry' in bundle:
+        observations = [entry['resource'] for entry in bundle['entry']]
+
+    if not observations:
+        return {
+            'met': False,
+            'reason': 'No performance status observations found',
+            'evidence': None
+        }
+
+    # Get most recent observation
+    observations.sort(
+        key=lambda x: x.get('effectiveDateTime', ''),
+        reverse=True
+    )
+    latest_obs = observations[0]
+
+    # Extract value (integer for both ECOG and Karnofsky)
+    value = latest_obs.get('valueInteger')
+    if value is None:
+        # Try valueQuantity as fallback
+        value_quantity = latest_obs.get('valueQuantity')
+        if value_quantity:
+            value = int(value_quantity.get('value', 0))
+        else:
+            return {
+                'met': False,
+                'reason': 'Performance status observation found but no value available',
+                'evidence': {'observation': latest_obs}
+            }
+
+    # Compare based on operator
+    operator = criterion['operator']
+    criterion_value = criterion['value']
+
+    met = False
+    if operator == 'greater_than':
+        met = value > criterion_value
+    elif operator == 'less_than':
+        met = value < criterion_value
+    elif operator == 'between':
+        met = criterion_value[0] <= value <= criterion_value[1]
+    elif operator == 'equals':
+        met = value == criterion_value
+
+    # Determine scale name
+    attribute = criterion.get('attribute', '').lower()
+    scale_name = 'ECOG' if 'ecog' in attribute else 'Karnofsky' if 'karnofsky' in attribute else 'Performance status'
+
+    reason = f"Patient's {scale_name} is {value}"
+
+    return {
+        'met': met,
+        'reason': reason,
+        'evidence': {
+            'value': value,
+            'criterion_value': criterion_value,
+            'scale': scale_name,
+            'date': latest_obs.get('effectiveDateTime'),
+            'code': latest_obs.get('code', {}).get('text')
+        }
+    }
+
+
+@tracer.capture_method
+def check_medication_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a medication criterion.
+
+    Supports:
+    - Active/historical medication filtering
+    - Medication name matching (fuzzy)
+    - Medication class matching
+    - RxNorm code matching
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Medication criterion
+
+    Returns:
+        Result with met status, reason, and medication evidence
+    """
+    try:
+        # Get medication status filter (default: active)
+        status_filter = criterion.get('status', 'active')
+
+        # Query MedicationStatement
+        params = {
+            'subject': f'Patient/{patient_id}',
+            'status': status_filter
+        }
+
+        response = query_fhir_resource('MedicationStatement', patient_id, params)
+
+        if not response or response.get('total', 0) == 0:
+            return {
+                'met': False,
+                'reason': f"No {status_filter} medications found",
+                'evidence': None
+            }
+
+        # Extract medications
+        medications = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            med_statement = entry.get('resource', {})
+
+            # Extract medication name
+            med_concept = med_statement.get('medicationCodeableConcept', {})
+            med_name = med_concept.get('text', 'Unknown')
+
+            # Extract coding
+            codings = med_concept.get('coding', [])
+            rxnorm_code = None
+            for coding in codings:
+                if 'rxnorm' in coding.get('system', '').lower():
+                    rxnorm_code = coding.get('code')
+                    break
+
+            medications.append({
+                'name': med_name,
+                'status': med_statement.get('status', 'unknown'),
+                'rxnorm_code': rxnorm_code,
+                'effective_date': med_statement.get('effectiveDateTime', med_statement.get('effectivePeriod', {}).get('start'))
+            })
+
+        if not medications:
+            return {
+                'met': False,
+                'reason': f"No medications found",
+                'evidence': None
+            }
+
+        # Match medications against criterion
+        search_value = criterion.get('value', '').lower()
+        operator = criterion.get('operator', 'contains')
+
+        # Check if criterion has RxNorm code
+        criterion_rxnorm = None
+        if 'coding' in criterion:
+            criterion_rxnorm = criterion['coding'].get('code')
+
+        matching_meds = []
+        for med in medications:
+            med_name_lower = med['name'].lower()
+
+            # Match by RxNorm code (exact match)
+            if criterion_rxnorm and med['rxnorm_code'] == criterion_rxnorm:
+                matching_meds.append(med)
+                continue
+
+            # Match by name (fuzzy matching)
+            if operator == 'contains':
+                if search_value in med_name_lower or med_name_lower in search_value:
+                    matching_meds.append(med)
+            elif operator == 'equals':
+                if search_value == med_name_lower:
+                    matching_meds.append(med)
+            elif operator == 'not_contains':
+                # For not_contains, we check if medication should be excluded
+                if search_value not in med_name_lower:
+                    matching_meds.append(med)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching medications found
+            met = len(matching_meds) == len(medications)  # All meds don't contain the search term
+            reason = f"Patient {'is not' if met else 'is'} taking {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching medication found
+            met = len(matching_meds) > 0
+            reason = f"Patient {'is' if met else 'is not'} taking {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'medication_count': len(matching_meds),
+                'medications': matching_meds,
+                'total_medications': len(medications)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking medication criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking medication: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_allergy_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets an allergy criterion.
+
+    Supports:
+    - Allergy existence checks
+    - Allergen name matching
+    - Drug allergy filtering
+    - SNOMED code matching
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Allergy criterion
+
+    Returns:
+        Result with met status, reason, and allergy evidence
+    """
+    try:
+        # Query AllergyIntolerance
+        params = {
+            'patient': patient_id
+        }
+
+        # Add category filter if specified (e.g., "medication" for drug allergies)
+        category_filter = criterion.get('category_filter')
+        if category_filter:
+            params['category'] = category_filter
+
+        response = query_fhir_resource('AllergyIntolerance', patient_id, params)
+
+        # Handle "not_exists" operator (no known allergies)
+        operator = criterion.get('operator', 'contains')
+        if operator == 'not_exists':
+            has_allergies = response and response.get('total', 0) > 0
+            return {
+                'met': not has_allergies,
+                'reason': f"Patient {'has' if has_allergies else 'has no'} known allergies",
+                'evidence': {
+                    'allergy_count': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No allergies found
+        if not response or response.get('total', 0) == 0:
+            # For "not_contains" (exclusion), this is good (met = True)
+            # For "contains" (inclusion), this means criterion not met
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No allergies found",
+                'evidence': None
+            }
+
+        # Extract allergies
+        allergies = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            allergy = entry.get('resource', {})
+
+            # Extract allergen name
+            code = allergy.get('code', {})
+            allergen_name = code.get('text', 'Unknown')
+
+            # Extract coding
+            codings = code.get('coding', [])
+            snomed_code = None
+            for coding in codings:
+                if 'snomed' in coding.get('system', '').lower():
+                    snomed_code = coding.get('code')
+                    break
+
+            allergies.append({
+                'allergen': allergen_name,
+                'type': allergy.get('type', 'unknown'),
+                'category': allergy.get('category', []),
+                'criticality': allergy.get('criticality', 'unknown'),
+                'snomed_code': snomed_code,
+                'recorded_date': allergy.get('recordedDate')
+            })
+
+        # Match allergies against criterion
+        search_value = criterion.get('value', '').lower() if criterion.get('value') else ''
+
+        # Check if criterion has SNOMED code
+        criterion_snomed = None
+        if 'coding' in criterion:
+            criterion_snomed = criterion['coding'].get('code')
+
+        matching_allergies = []
+        for allergy in allergies:
+            allergen_lower = allergy['allergen'].lower()
+
+            # Match by SNOMED code (exact match)
+            if criterion_snomed and allergy['snomed_code'] == criterion_snomed:
+                matching_allergies.append(allergy)
+                continue
+
+            # Match by allergen name
+            if operator == 'contains':
+                if search_value in allergen_lower or allergen_lower in search_value:
+                    matching_allergies.append(allergy)
+            elif operator == 'equals':
+                if search_value == allergen_lower:
+                    matching_allergies.append(allergy)
+            elif operator == 'not_contains':
+                if search_value not in allergen_lower:
+                    matching_allergies.append(allergy)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching allergies found
+            met = len(matching_allergies) == len(allergies)  # All allergies don't contain search term
+            reason = f"Patient {'has no allergy' if met else 'has allergy'} to {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching allergy found
+            met = len(matching_allergies) > 0
+            reason = f"Patient {'has' if met else 'has no'} allergy to {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'allergy_count': len(matching_allergies),
+                'allergies': matching_allergies,
+                'total_allergies': len(allergies)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking allergy criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking allergy: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a simple (leaf) criterion.
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Parsed simple criterion dictionary
 
     Returns:
         Result dictionary with met status, reason, and evidence
     """
-    category = criterion['category']
+    category = criterion.get('category')
 
     try:
         if category == 'demographics':
@@ -410,6 +765,15 @@ def check_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any
         elif category == 'lab_value':
             result = check_observation_criterion(patient_id, criterion)
 
+        elif category == 'performance_status':
+            result = check_performance_status_criterion(patient_id, criterion)
+
+        elif category == 'medication':
+            result = check_medication_criterion(patient_id, criterion)
+
+        elif category == 'allergy':
+            result = check_allergy_criterion(patient_id, criterion)
+
         else:
             result = {
                 'met': False,
@@ -419,15 +783,15 @@ def check_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any
 
         # Add criterion info to result
         result['criterion'] = {
-            'type': criterion['type'],
-            'description': criterion['description'],
+            'type': criterion.get('type'),
+            'description': criterion.get('description'),
             'category': category
         }
 
         return result
 
     except Exception as e:
-        logger.error(f"Error checking criterion: {str(e)}", exc_info=True)
+        logger.error(f"Error checking simple criterion: {str(e)}", exc_info=True)
         return {
             'met': False,
             'reason': f"Error checking criterion: {str(e)}",
@@ -438,6 +802,105 @@ def check_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any
                 'category': category
             }
         }
+
+
+@tracer.capture_method
+def check_criterion(patient_id: str, criterion: Dict[str, Any], depth: int = 0) -> Dict[str, Any]:
+    """
+    Recursively check if patient meets a criterion (simple or complex).
+
+    Supports nested logical operators (AND, OR, NOT).
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Parsed criterion dictionary (simple or complex)
+        depth: Current recursion depth (for limiting)
+
+    Returns:
+        Result dictionary with met status, reason, and evidence
+    """
+    MAX_DEPTH = 10
+
+    # Depth limit check
+    if depth > MAX_DEPTH:
+        logger.error(f"Maximum recursion depth ({MAX_DEPTH}) exceeded")
+        return {
+            'met': False,
+            'reason': f"Maximum nesting depth ({MAX_DEPTH}) exceeded",
+            'evidence': None,
+            'criterion': criterion
+        }
+
+    # Check if this is a complex criterion (has sub-criteria)
+    if 'criteria' in criterion and criterion['criteria']:
+        # Complex criterion - recursive evaluation
+        logic_op = criterion.get('logic_operator', 'AND')
+        sub_criteria = criterion['criteria']
+
+        logger.info(f"Evaluating complex criterion with {logic_op} and {len(sub_criteria)} sub-criteria")
+
+        # Evaluate all sub-criteria recursively
+        sub_results = []
+        for sub_criterion in sub_criteria:
+            result = check_criterion(patient_id, sub_criterion, depth + 1)
+            sub_results.append(result)
+
+        # Apply logical operator
+        if logic_op == 'AND':
+            met = all(r['met'] for r in sub_results)
+            met_count = sum(1 for r in sub_results if r['met'])
+            if met:
+                reason = f"All {len(sub_results)} sub-criteria met"
+            else:
+                reason = f"Only {met_count} of {len(sub_results)} sub-criteria met (all required)"
+
+        elif logic_op == 'OR':
+            met = any(r['met'] for r in sub_results)
+            met_count = sum(1 for r in sub_results if r['met'])
+            if met:
+                reason = f"At least 1 of {len(sub_results)} sub-criteria met ({met_count} met)"
+            else:
+                reason = f"None of {len(sub_results)} sub-criteria met"
+
+        elif logic_op == 'NOT':
+            if len(sub_results) != 1:
+                logger.error(f"NOT operator requires exactly 1 sub-criterion, got {len(sub_results)}")
+                return {
+                    'met': False,
+                    'reason': f"NOT operator requires exactly 1 sub-criterion, got {len(sub_results)}",
+                    'evidence': None,
+                    'criterion': criterion
+                }
+            met = not sub_results[0]['met']
+            reason = f"Negation of: {sub_results[0]['reason']}"
+
+        else:
+            logger.error(f"Unknown logic operator: {logic_op}")
+            return {
+                'met': False,
+                'reason': f"Unknown logic operator: {logic_op}",
+                'evidence': None,
+                'criterion': criterion
+            }
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'logic_operator': logic_op,
+                'sub_results': sub_results,
+                'depth': depth
+            },
+            'criterion': {
+                'type': criterion.get('type'),
+                'description': criterion.get('description'),
+                'logic_operator': logic_op
+            }
+        }
+
+    else:
+        # Simple criterion - direct evaluation
+        return check_simple_criterion(patient_id, criterion)
 
 
 @logger.inject_lambda_context(log_event=True)

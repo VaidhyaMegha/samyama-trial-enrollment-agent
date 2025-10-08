@@ -33,14 +33,20 @@ Your task is to parse free-text clinical trial eligibility criteria and convert 
 
 For each criterion, extract:
 1. **type**: "inclusion" or "exclusion"
-2. **category**: The domain (e.g., "demographics", "condition", "lab_value", "medication", "procedure")
+2. **category**: The domain (e.g., "demographics", "condition", "lab_value", "medication", "procedure", "performance_status")
 3. **description**: Natural language description of the criterion
-4. **attribute**: What is being checked (e.g., "age", "HbA1c", "diagnosis")
+4. **attribute**: What is being checked (e.g., "age", "HbA1c", "diagnosis", "ecog", "karnofsky")
 5. **operator**: Comparison operator ("equals", "greater_than", "less_than", "between", "contains", "not_contains")
 6. **value**: The value(s) to compare against
 7. **unit**: Unit of measurement (if applicable)
 8. **fhir_resource**: FHIR resource type to query (e.g., "Patient", "Observation", "Condition")
 9. **fhir_path**: FHIR path to the relevant field (e.g., "Patient.birthDate", "Observation.valueQuantity")
+
+**Performance Status Guidelines:**
+- ECOG scale: 0-4 (0=fully active, 1=restricted, 2=ambulatory, 3=limited, 4=disabled)
+- Karnofsky scale: 0-100 (100=normal, 0=dead)
+- Category: "performance_status"
+- FHIR Resource: "Observation"
 
 Examples:
 
@@ -95,11 +101,361 @@ Output:
   }}
 }}
 
+Input: "ECOG performance status 0-1"
+Output:
+{{
+  "type": "inclusion",
+  "category": "performance_status",
+  "description": "ECOG performance status 0-1",
+  "attribute": "ecog",
+  "operator": "between",
+  "value": [0, 1],
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueInteger",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "89247-1",
+    "display": "ECOG Performance Status"
+  }}
+}}
+
+Input: "Karnofsky performance status ≥70"
+Output:
+{{
+  "type": "inclusion",
+  "category": "performance_status",
+  "description": "Karnofsky performance status ≥70",
+  "attribute": "karnofsky",
+  "operator": "greater_than",
+  "value": 70,
+  "fhir_resource": "Observation",
+  "fhir_path": "Observation.valueInteger",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "89243-0",
+    "display": "Karnofsky Performance Status"
+  }}
+}}
+
+Input: "Currently taking metformin"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication",
+  "description": "Currently taking metformin",
+  "attribute": "medication_name",
+  "operator": "contains",
+  "value": "metformin",
+  "fhir_resource": "MedicationStatement",
+  "fhir_path": "MedicationStatement.medicationCodeableConcept",
+  "status": "active",
+  "coding": {{
+    "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+    "code": "6809",
+    "display": "Metformin"
+  }}
+}}
+
+Input: "No history of insulin use"
+Output:
+{{
+  "type": "exclusion",
+  "category": "medication",
+  "description": "No history of insulin use",
+  "attribute": "medication_name",
+  "operator": "not_contains",
+  "value": "insulin",
+  "fhir_resource": "MedicationStatement",
+  "fhir_path": "MedicationStatement.medicationCodeableConcept"
+}}
+
+Input: "On stable statin therapy"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication",
+  "description": "On stable statin therapy",
+  "attribute": "medication_class",
+  "operator": "contains",
+  "value": "statin",
+  "fhir_resource": "MedicationStatement",
+  "fhir_path": "MedicationStatement.medicationCodeableConcept",
+  "status": "active"
+}}
+
+Input: "No allergy to penicillin"
+Output:
+{{
+  "type": "exclusion",
+  "category": "allergy",
+  "description": "No allergy to penicillin",
+  "attribute": "allergen",
+  "operator": "not_contains",
+  "value": "penicillin",
+  "fhir_resource": "AllergyIntolerance",
+  "fhir_path": "AllergyIntolerance.code"
+}}
+
+Input: "Allergic to peanuts"
+Output:
+{{
+  "type": "exclusion",
+  "category": "allergy",
+  "description": "Allergic to peanuts",
+  "attribute": "allergen",
+  "operator": "contains",
+  "value": "peanut",
+  "fhir_resource": "AllergyIntolerance",
+  "fhir_path": "AllergyIntolerance.code",
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "256349002",
+    "display": "Peanut allergy"
+  }}
+}}
+
+Input: "No known drug allergies"
+Output:
+{{
+  "type": "inclusion",
+  "category": "allergy",
+  "description": "No known drug allergies",
+  "attribute": "drug_allergy",
+  "operator": "not_exists",
+  "value": null,
+  "fhir_resource": "AllergyIntolerance",
+  "fhir_path": "AllergyIntolerance.category",
+  "category_filter": "medication"
+}}
+
+**Complex Criteria with Logical Operators:**
+
+CRITICAL RULES:
+1. If criteria has logical operators (OR, AND, NOT) → Create nested structure with "logic_operator" and "criteria" array
+2. If criteria is simple (no logical operators) → Create single criterion object WITHOUT "criteria" array
+3. Do NOT wrap single simple criteria in unnecessary nested structures
+
+Decision Tree:
+- Text contains " OR " between conditions? → Use "logic_operator": "OR" with "criteria" array
+- Text contains " AND " between conditions? → Use "logic_operator": "AND" with "criteria" array
+- Text contains " NOT "? → Use "logic_operator": "NOT" with "criteria" array
+- Text is simple (no logical operators)? → Return simple criterion object directly
+
+Example 1 - CORRECT way to handle "OR":
+Input: "Patient has Type 2 Diabetes OR Pre-diabetes"
+
+CORRECT Output:
+[
+  {{
+    "type": "inclusion",
+    "logic_operator": "OR",
+    "description": "Type 2 Diabetes or Pre-diabetes",
+    "criteria": [
+      {{
+        "category": "condition",
+        "description": "Type 2 Diabetes",
+        "attribute": "diagnosis",
+        "operator": "contains",
+        "value": "Type 2 Diabetes",
+        "fhir_resource": "Condition",
+        "fhir_path": "Condition.code"
+      }},
+      {{
+        "category": "condition",
+        "description": "Pre-diabetes",
+        "attribute": "diagnosis",
+        "operator": "contains",
+        "value": "Pre-diabetes",
+        "fhir_resource": "Condition",
+        "fhir_path": "Condition.code"
+      }}
+    ]
+  }}
+]
+
+WRONG Output (DO NOT DO THIS):
+[
+  {{"type": "inclusion", "description": "Type 2 Diabetes", ...}},
+  {{"type": "inclusion", "description": "Pre-diabetes", ...}}
+]
+
+Example 2 - CORRECT way to handle nested "AND" with "OR":
+Input: "(Type 2 Diabetes OR Pre-diabetes) AND ECOG performance status 0-1"
+
+CORRECT Output:
+[
+  {{
+    "type": "inclusion",
+    "logic_operator": "AND",
+    "description": "(Type 2 Diabetes OR Pre-diabetes) AND ECOG 0-1",
+    "criteria": [
+      {{
+        "logic_operator": "OR",
+        "description": "Type 2 Diabetes or Pre-diabetes",
+        "criteria": [
+          {{
+            "category": "condition",
+            "description": "Type 2 Diabetes",
+            "attribute": "diagnosis",
+            "operator": "contains",
+            "value": "Type 2 Diabetes",
+            "fhir_resource": "Condition"
+          }},
+          {{
+            "category": "condition",
+            "description": "Pre-diabetes",
+            "attribute": "diagnosis",
+            "operator": "contains",
+            "value": "Pre-diabetes",
+            "fhir_resource": "Condition"
+          }}
+        ]
+      }},
+      {{
+        "category": "performance_status",
+        "description": "ECOG 0-1",
+        "attribute": "ecog",
+        "operator": "between",
+        "value": [0, 1],
+        "fhir_resource": "Observation",
+        "coding": {{"system": "http://loinc.org", "code": "89247-1"}}
+      }}
+    ]
+  }}
+]
+
 Now parse the following criteria text:
 
 {criteria_text}
 
-Return ONLY a JSON array of criterion objects. Do not include any explanatory text."""
+Return ONLY a JSON array.
+- If the text contains logical operators (AND, OR, NOT), return ONE criterion object with "logic_operator" and nested "criteria" array
+- If the text contains multiple independent criteria without logical operators, return multiple criterion objects
+- Do not include any explanatory text or markdown formatting."""
+
+
+def create_nested_criteria_structure(criteria_list: List[Dict[str, Any]], criteria_text: str) -> List[Dict[str, Any]]:
+    """
+    Post-process parsed criteria to create nested logical structures when AND/OR/NOT operators are detected.
+
+    Args:
+        criteria_list: Flat list of parsed criteria
+        criteria_text: Original criteria text
+
+    Returns:
+        Restructured criteria with nested logic operators
+    """
+    import re
+
+    # First, unwrap any unnecessarily wrapped criteria and copy type fields recursively
+    def process_criterion(criterion, parent_type=None):
+        """Recursively process criteria to unwrap and copy type fields"""
+
+        # Copy type from parent if missing
+        if parent_type and 'type' not in criterion:
+            criterion['type'] = parent_type
+
+        # Get the type for this level
+        current_type = criterion.get('type', parent_type)
+
+        # If has sub-criteria, process them recursively
+        if criterion.get('criteria'):
+            criterion['criteria'] = [
+                process_criterion(sub, current_type)
+                for sub in criterion['criteria']
+            ]
+
+            # Check if this is an unnecessary wrapper (single sub-criterion with logic_operator but no category)
+            if (len(criterion['criteria']) == 1 and
+                criterion.get('logic_operator') and
+                not criterion.get('category')):
+                # Unwrap: return the single sub-criterion instead
+                return criterion['criteria'][0]
+
+        return criterion
+
+    criteria_list = [process_criterion(c) for c in criteria_list]
+
+    # Check if criteria text contains logical operators
+    text_upper = criteria_text.upper()
+    has_or = ' OR ' in text_upper
+    has_and = ' AND ' in text_upper
+    has_not = ' NOT ' in text_upper or text_upper.startswith('NOT ')
+
+    # If no logical operators, return as-is
+    if not (has_or or has_and or has_not):
+        return criteria_list
+
+    # If only one criterion was parsed but text has logical operators,
+    # return as-is (LLM might have already structured it correctly)
+    if len(criteria_list) == 1:
+        first_criterion = criteria_list[0]
+
+        # If it already has a logic_operator, it's properly structured
+        if first_criterion.get('logic_operator'):
+            return criteria_list
+
+        # If it has criteria array but no logic_operator, check if it should have one
+        if first_criterion.get('criteria'):
+            sub_criteria = first_criterion['criteria']
+            # Only add logic_operator if there are actually multiple sub-criteria
+            if len(sub_criteria) > 1:
+                # Add the appropriate logic operator
+                if has_and and has_or:
+                    first_criterion['logic_operator'] = 'AND'
+                elif has_and:
+                    first_criterion['logic_operator'] = 'AND'
+                elif has_or:
+                    first_criterion['logic_operator'] = 'OR'
+                elif has_not:
+                    first_criterion['logic_operator'] = 'NOT'
+            else:
+                # Single sub-criterion, unwrap it and return directly
+                return sub_criteria
+
+            return criteria_list
+
+        # Single criterion without nested structure, return as-is
+        return criteria_list
+
+    # Determine the top-level operator based on precedence and presence
+    # Priority: NOT > AND > OR
+    # For nested "(A OR B) AND C", AND is at top level
+
+    # If we have both AND and OR, check which is at the top level
+    # Look for patterns like "(... OR ...) AND" or "AND (... OR ...)"
+    if has_and and has_or:
+        # Check if OR is parenthesized (nested inside AND)
+        if '(' in criteria_text and ')' in criteria_text:
+            # AND is likely top-level
+            top_operator = 'AND'
+            # Try to identify sub-groups
+            # This is complex, so for now, create AND at top level with all criteria
+            return [{
+                "type": "inclusion",
+                "logic_operator": "AND",
+                "description": criteria_text.strip(),
+                "criteria": criteria_list
+            }]
+        else:
+            # No clear nesting, default to AND
+            top_operator = 'AND'
+    elif has_and:
+        top_operator = 'AND'
+    elif has_or:
+        top_operator = 'OR'
+    elif has_not:
+        top_operator = 'NOT'
+    else:
+        return criteria_list
+
+    # Create nested structure
+    return [{
+        "type": "inclusion",
+        "logic_operator": top_operator,
+        "description": criteria_text.strip(),
+        "criteria": criteria_list
+    }]
 
 
 def convert_decimals(obj: Any) -> Any:
@@ -300,8 +656,22 @@ def parse_criteria_with_bedrock(criteria_text: str, model_id: str = "amazon.tita
 
                 content = content.strip()
         else:
-            # No backticks, use content as-is
+            # No backticks, extract JSON from content
             content = content.strip()
+
+            # Find the first [ or { to locate the start of JSON
+            json_start = -1
+            for char in ['[', '{']:
+                pos = content.find(char)
+                if pos != -1:
+                    if json_start == -1 or pos < json_start:
+                        json_start = pos
+
+            if json_start != -1:
+                # Extract from the first JSON character onwards
+                content = content[json_start:]
+
+            # Now content should start with valid JSON
 
         parsed_criteria = json.loads(content)
 
@@ -314,6 +684,11 @@ def parse_criteria_with_bedrock(criteria_text: str, model_id: str = "amazon.tita
                 parsed_criteria = [parsed_criteria]
 
         logger.info(f"Successfully parsed {len(parsed_criteria)} criteria")
+
+        # Post-process to create nested logical structures
+        parsed_criteria = create_nested_criteria_structure(parsed_criteria, criteria_text)
+        logger.info(f"After post-processing: {len(parsed_criteria)} criteria")
+
         return parsed_criteria
 
     except Exception as e:
@@ -343,7 +718,14 @@ def validate_criterion(criterion: Dict[str, Any]) -> bool:
         raise ValueError(f"Invalid type: {criterion['type']}. Must be 'inclusion' or 'exclusion'")
 
     # Validate operator
-    valid_operators = ['equals', 'greater_than', 'less_than', 'between', 'contains', 'not_contains', 'exists', 'not_exists']
+    valid_operators = [
+        'equals', 'not_equals',
+        'greater_than', 'greater_than_or_equal',
+        'less_than', 'less_than_or_equal',
+        'between',
+        'contains', 'not_contains',
+        'exists', 'not_exists'
+    ]
     if criterion['operator'] not in valid_operators:
         raise ValueError(f"Invalid operator: {criterion['operator']}")
 
@@ -408,14 +790,27 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
             # Save to cache for future requests
             save_to_cache(trial_id, criteria_text, parsed_criteria)
 
-        # Validate each criterion
+        # Recursively validate each criterion
+        def validate_recursive(criterion, path=""):
+            """Recursively validate criteria and sub-criteria"""
+            # Skip validation for structural nodes (those with logic_operator but no category)
+            if criterion.get('logic_operator') and not criterion.get('category'):
+                # This is a logical structure node, skip validation
+                # But recursively validate sub-criteria if present
+                if criterion.get('criteria'):
+                    for sub_idx, sub_criterion in enumerate(criterion['criteria']):
+                        validate_recursive(sub_criterion, f"{path}.{sub_idx}" if path else str(sub_idx))
+            else:
+                # Regular criterion, validate normally
+                try:
+                    validate_criterion(criterion)
+                except ValueError as e:
+                    logger.warning(f"Criterion {path} validation failed: {str(e)}")
+                    # Add validation warning to criterion
+                    criterion['validation_warning'] = str(e)
+
         for idx, criterion in enumerate(parsed_criteria):
-            try:
-                validate_criterion(criterion)
-            except ValueError as e:
-                logger.warning(f"Criterion {idx} validation failed: {str(e)}")
-                # Add validation warning to criterion
-                criterion['validation_warning'] = str(e)
+            validate_recursive(criterion, str(idx))
 
         # Prepare response
         response_body = {
