@@ -1,0 +1,573 @@
+{
+  "info": {
+    "name": "DiagnosticReport Resource Tests",
+    "description": "Comprehensive tests for DiagnosticReport FHIR resource support",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. DIAGNOSTIC REPORT PARSING TESTS",
+      "item": [
+        {
+          "name": "1.1 Parse: No evidence of metastases on CT scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-parse-1\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- No evidence of metastases on CT scan\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Parse: PET scan positive for malignancy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-parse-2\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- PET scan positive for malignancy\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Parse: Pathology report showing cancer cells",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-parse-3\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Pathology report showing presence of cancer cells\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Parse: Abnormal liver function tests",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-parse-4\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- Abnormal liver function tests within past 30 days\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. DIAGNOSTIC REPORT EVALUATION TESTS",
+      "item": [
+        {
+          "name": "2.1 Evaluate: CT patient - has metastases",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-eval-1\",\n  \"patient_id\": \"e72044f7-72b0-4255-be14-6cf4ce4cfb22\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"CT scan showing metastases\",\n      \"attribute\": \"report_conclusion\",\n      \"operator\": \"contains\",\n      \"value\": \"metastases\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.conclusion\",\n      \"report_category\": \"RAD\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"24627-2\",\n        \"display\": \"CT Chest\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Evaluate: CT patient - no metastases",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-eval-2\",\n  \"patient_id\": \"19e016e3-2d74-47cf-9ef0-830505917a6c\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"No metastases on CT\",\n      \"attribute\": \"report_conclusion\",\n      \"operator\": \"not_contains\",\n      \"value\": \"metastases\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.conclusion\",\n      \"report_category\": \"RAD\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"24627-2\",\n        \"display\": \"CT Chest\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 Evaluate: PET patient - positive for malignancy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-eval-3\",\n  \"patient_id\": \"2a9a9054-314e-4613-ac64-5583fc914327\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"PET positive for malignancy\",\n      \"attribute\": \"report_conclusion\",\n      \"operator\": \"contains\",\n      \"value\": \"malignancy\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.conclusion\",\n      \"report_category\": \"RAD\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"44139-4\",\n        \"display\": \"PET scan whole body\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 Evaluate: Pathology patient - cancer cells present",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-eval-4\",\n  \"patient_id\": \"93764eff-3bbd-40a3-95dc-9444bdb237a8\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"Pathology shows cancer cells\",\n      \"attribute\": \"report_conclusion\",\n      \"operator\": \"contains\",\n      \"value\": \"cancer cells\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.conclusion\",\n      \"report_category\": \"PAT\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"11526-1\",\n        \"display\": \"Pathology report\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 Evaluate: Lab patient - abnormal LFT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-eval-5\",\n  \"patient_id\": \"90727c1e-1887-4c16-b1e9-419a3da50c12\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"Abnormal liver function\",\n      \"attribute\": \"report_conclusion\",\n      \"operator\": \"contains\",\n      \"value\": \"abnormal\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.conclusion\",\n      \"report_category\": \"LAB\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"24326-1\",\n        \"display\": \"Liver function panel\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.6 Evaluate: MRI patient - brain tumor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-eval-6\",\n  \"patient_id\": \"650a37ad-74e4-4c56-b336-c8b32de90a35\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"MRI shows brain mass\",\n      \"attribute\": \"report_conclusion\",\n      \"operator\": \"contains\",\n      \"value\": \"mass\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.conclusion\",\n      \"report_category\": \"RAD\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"24558-9\",\n        \"display\": \"MRI Brain\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. EDGE CASE TESTS",
+      "item": [
+        {
+          "name": "3.1 not_exists: No diagnostic reports (control patient)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-edge-1\",\n  \"patient_id\": \"44d8e001-a89c-4f6b-b1d8-4a3787888a66\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"No diagnostic reports\",\n      \"attribute\": \"report_existence\",\n      \"operator\": \"not_exists\",\n      \"value\": \"\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 Multiple reports: CT + PET + Pathology patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-edge-2\",\n  \"patient_id\": \"fc7ecb30-890f-4a76-9b86-f21637386bfa\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"Has imaging reports\",\n      \"attribute\": \"report_category\",\n      \"operator\": \"contains\",\n      \"value\": \"imaging\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.category\",\n      \"report_category\": \"RAD\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Fuzzy match: 'lung' matches 'lung malignancy'",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-edge-3\",\n  \"patient_id\": \"fc7ecb30-890f-4a76-9b86-f21637386bfa\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"Lung findings\",\n      \"attribute\": \"report_conclusion\",\n      \"operator\": \"contains\",\n      \"value\": \"lung\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.conclusion\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 Complex: DiagnosticReport AND Demographics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-edge-4\",\n  \"patient_id\": \"2a9a9054-314e-4613-ac64-5583fc914327\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"logic_operator\": \"AND\",\n      \"description\": \"PET positive and age >= 18\",\n      \"criteria\": [\n        {\n          \"category\": \"diagnostic_report\",\n          \"description\": \"PET positive\",\n          \"attribute\": \"report_conclusion\",\n          \"operator\": \"contains\",\n          \"value\": \"malignancy\",\n          \"fhir_resource\": \"DiagnosticReport\",\n          \"fhir_path\": \"DiagnosticReport.conclusion\"\n        },\n        {\n          \"category\": \"demographics\",\n          \"description\": \"Age >= 18 years\",\n          \"attribute\": \"age\",\n          \"operator\": \"greater_than\",\n          \"value\": 18,\n          \"unit\": \"years\",\n          \"fhir_resource\": \"Patient\",\n          \"fhir_path\": \"Patient.birthDate\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. CODE MATCHING TESTS",
+      "item": [
+        {
+          "name": "4.1 Match by LOINC code: CT Chest (24627-2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-code-1\",\n  \"patient_id\": \"e72044f7-72b0-4255-be14-6cf4ce4cfb22\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"LOINC code match: CT Chest\",\n      \"attribute\": \"report_code\",\n      \"operator\": \"contains\",\n      \"value\": \"ct\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.code\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"24627-2\",\n        \"display\": \"CT Chest\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 Match by LOINC code: PET scan (44139-4)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-code-2\",\n  \"patient_id\": \"2a9a9054-314e-4613-ac64-5583fc914327\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"LOINC code match: PET scan\",\n      \"attribute\": \"report_code\",\n      \"operator\": \"contains\",\n      \"value\": \"pet\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.code\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"44139-4\",\n        \"display\": \"PET scan whole body\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 Match without code (text fallback): Pathology",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"diag-report-code-3\",\n  \"patient_id\": \"93764eff-3bbd-40a3-95dc-9444bdb237a8\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"diagnostic_report\",\n      \"description\": \"Pathology report (no code)\",\n      \"attribute\": \"report_text\",\n      \"operator\": \"contains\",\n      \"value\": \"pathology\",\n      \"fhir_resource\": \"DiagnosticReport\",\n      \"fhir_path\": \"DiagnosticReport.code.text\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

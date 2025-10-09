@@ -979,6 +979,160 @@ def check_procedure_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dic
 
 
 @tracer.capture_method
+def check_diagnostic_report_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a diagnostic report criterion.
+
+    Supports:
+    - Report conclusion/status matching
+    - Report category filtering (imaging, lab, pathology, cardiology)
+    - LOINC code matching for specific tests
+    - Text-based matching for findings
+
+    Args:
+        patient_id: Patient identifier
+        criterion: DiagnosticReport criterion
+
+    Returns:
+        Result with met status, reason, and report evidence
+    """
+    try:
+        # Query DiagnosticReport resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        # Add category filter if specified
+        report_category = criterion.get('report_category')
+        if report_category:
+            params['category'] = report_category
+
+        response = query_fhir_resource('DiagnosticReport', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator
+        if operator == 'not_exists':
+            has_reports = response and response.get('total', 0) > 0
+            return {
+                'met': not has_reports,
+                'reason': f"Patient {'has' if has_reports else 'has no'} diagnostic reports",
+                'evidence': {
+                    'report_count': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No reports found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No diagnostic reports found",
+                'evidence': None
+            }
+
+        # Extract reports
+        reports = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            report = entry.get('resource', {})
+
+            # Extract conclusion and status
+            conclusion = report.get('conclusion', '').lower()
+            status = report.get('status', 'unknown')
+
+            # Extract report code
+            code = report.get('code', {})
+            report_text = code.get('text', 'Unknown report')
+
+            # Extract LOINC code
+            codings = code.get('coding', [])
+            loinc_code = None
+            for coding in codings:
+                if 'loinc' in coding.get('system', '').lower():
+                    loinc_code = coding.get('code')
+                    break
+
+            # Extract issued date
+            issued_date = report.get('issued', report.get('effectiveDateTime'))
+
+            reports.append({
+                'text': report_text,
+                'conclusion': conclusion,
+                'status': status,
+                'loinc_code': loinc_code,
+                'issued_date': issued_date,
+                'category': report_category or 'unknown'
+            })
+
+        if not reports:
+            return {
+                'met': False,
+                'reason': "No diagnostic reports found",
+                'evidence': None
+            }
+
+        # Match reports against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has LOINC code
+        criterion_coding = criterion.get('coding', {})
+        criterion_code = criterion_coding.get('code') if criterion_coding else None
+
+        matching_reports = []
+        for report in reports:
+            # Match by LOINC code (exact match)
+            if criterion_code and report['loinc_code'] == criterion_code:
+                matching_reports.append(report)
+                continue
+
+            # Match by conclusion or report text (fuzzy matching)
+            report_text_lower = report['text'].lower()
+            conclusion_lower = report['conclusion']
+
+            if operator == 'contains':
+                if (search_value in conclusion_lower or conclusion_lower in search_value or
+                    search_value in report_text_lower or report_text_lower in search_value):
+                    matching_reports.append(report)
+            elif operator == 'equals':
+                if search_value == conclusion_lower or search_value == report_text_lower:
+                    matching_reports.append(report)
+            elif operator == 'not_contains':
+                if search_value not in conclusion_lower and search_value not in report_text_lower:
+                    matching_reports.append(report)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching reports found
+            met = len(matching_reports) == len(reports)
+            reason = f"Patient reports {'do not contain' if met else 'contain'} {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching report found
+            met = len(matching_reports) > 0
+            reason = f"Patient {'has' if met else 'has no'} diagnostic report with {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'report_count': len(matching_reports),
+                'reports': matching_reports,
+                'total_reports': len(reports)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking diagnostic report criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking diagnostic report: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
 def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
     """
     Check if patient meets a simple (leaf) criterion.
@@ -1015,6 +1169,9 @@ def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[s
 
         elif category == 'procedure':
             result = check_procedure_criterion(patient_id, criterion)
+
+        elif category == 'diagnostic_report':
+            result = check_diagnostic_report_criterion(patient_id, criterion)
 
         else:
             result = {

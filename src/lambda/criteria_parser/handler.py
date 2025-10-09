@@ -716,6 +716,160 @@ Output:
   }}
 }}
 
+**DiagnosticReport Examples:**
+
+Input: "No evidence of metastases on CT scan"
+Output:
+{{
+  "type": "exclusion",
+  "category": "diagnostic_report",
+  "description": "No metastases on CT",
+  "attribute": "report_conclusion",
+  "operator": "not_contains",
+  "value": "metastases",
+  "fhir_resource": "DiagnosticReport",
+  "fhir_path": "DiagnosticReport.conclusion",
+  "report_category": "imaging",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "24627-2",
+    "display": "CT Chest"
+  }}
+}}
+
+Input: "PET scan positive for malignancy"
+Output:
+{{
+  "type": "inclusion",
+  "category": "diagnostic_report",
+  "description": "PET scan positive",
+  "attribute": "report_conclusion",
+  "operator": "contains",
+  "value": "positive",
+  "fhir_resource": "DiagnosticReport",
+  "fhir_path": "DiagnosticReport.conclusion",
+  "report_category": "imaging",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "44139-4",
+    "display": "PET scan whole body"
+  }}
+}}
+
+Input: "Confirmed diagnosis of adenocarcinoma on biopsy"
+Output:
+{{
+  "type": "inclusion",
+  "category": "diagnostic_report",
+  "description": "Adenocarcinoma confirmed on biopsy",
+  "attribute": "report_conclusion",
+  "operator": "contains",
+  "value": "adenocarcinoma",
+  "fhir_resource": "DiagnosticReport",
+  "fhir_path": "DiagnosticReport.conclusion",
+  "report_category": "pathology",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "60568-3",
+    "display": "Pathology Synoptic report"
+  }}
+}}
+
+Input: "Abnormal liver function tests"
+Output:
+{{
+  "type": "exclusion",
+  "category": "diagnostic_report",
+  "description": "Abnormal LFTs",
+  "attribute": "report_status",
+  "operator": "contains",
+  "value": "abnormal",
+  "fhir_resource": "DiagnosticReport",
+  "fhir_path": "DiagnosticReport.conclusion",
+  "report_category": "lab",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "24325-3",
+    "display": "Liver function panel"
+  }}
+}}
+
+Input: "Normal complete blood count"
+Output:
+{{
+  "type": "inclusion",
+  "category": "diagnostic_report",
+  "description": "Normal CBC",
+  "attribute": "report_status",
+  "operator": "contains",
+  "value": "normal",
+  "fhir_resource": "DiagnosticReport",
+  "fhir_path": "DiagnosticReport.conclusion",
+  "report_category": "lab",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "58410-2",
+    "display": "Complete blood count (CBC) panel"
+  }}
+}}
+
+Input: "MRI showing tumor progression"
+Output:
+{{
+  "type": "exclusion",
+  "category": "diagnostic_report",
+  "description": "MRI tumor progression",
+  "attribute": "report_conclusion",
+  "operator": "contains",
+  "value": "progression",
+  "fhir_resource": "DiagnosticReport",
+  "fhir_path": "DiagnosticReport.conclusion",
+  "report_category": "imaging",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "24558-9",
+    "display": "MRI Brain"
+  }}
+}}
+
+Input: "ECG showing atrial fibrillation"
+Output:
+{{
+  "type": "exclusion",
+  "category": "diagnostic_report",
+  "description": "ECG atrial fibrillation",
+  "attribute": "report_conclusion",
+  "operator": "contains",
+  "value": "atrial fibrillation",
+  "fhir_resource": "DiagnosticReport",
+  "fhir_path": "DiagnosticReport.conclusion",
+  "report_category": "cardiology",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "11524-6",
+    "display": "EKG study"
+  }}
+}}
+
+Input: "No active tuberculosis on chest X-ray"
+Output:
+{{
+  "type": "inclusion",
+  "category": "diagnostic_report",
+  "description": "No TB on CXR",
+  "attribute": "report_conclusion",
+  "operator": "not_contains",
+  "value": "tuberculosis",
+  "fhir_resource": "DiagnosticReport",
+  "fhir_path": "DiagnosticReport.conclusion",
+  "report_category": "imaging",
+  "coding": {{
+    "system": "http://loinc.org",
+    "code": "36643-5",
+    "display": "Chest X-ray"
+  }}
+}}
+
 **Complex Criteria with Logical Operators:**
 
 CRITICAL RULES:
@@ -1173,6 +1327,32 @@ def enhance_with_coding_systems(criteria: List[Dict[str, Any]]) -> List[Dict[str
             "dialysis": {"system": "http://snomed.info/sct", "code": "108241001", "display": "Dialysis procedure"},
             "major surgery": {"system": "http://snomed.info/sct", "code": "387713003", "display": "Surgical procedure"},
             "surgery": {"system": "http://snomed.info/sct", "code": "387713003", "display": "Surgical procedure"},
+        },
+        "diagnostic_report": {
+            # LOINC codes for diagnostic reports (imaging, lab, pathology)
+            "ct chest": {"system": "http://loinc.org", "code": "24627-2", "display": "CT Chest"},
+            "ct scan": {"system": "http://loinc.org", "code": "24627-2", "display": "CT Chest"},
+            "pet scan": {"system": "http://loinc.org", "code": "44139-4", "display": "PET scan whole body"},
+            "pet": {"system": "http://loinc.org", "code": "44139-4", "display": "PET scan whole body"},
+            "mri brain": {"system": "http://loinc.org", "code": "24558-9", "display": "MRI Brain"},
+            "mri": {"system": "http://loinc.org", "code": "24558-9", "display": "MRI Brain"},
+            "chest x-ray": {"system": "http://loinc.org", "code": "36643-5", "display": "Chest X-ray"},
+            "cxr": {"system": "http://loinc.org", "code": "36643-5", "display": "Chest X-ray"},
+            "ecg": {"system": "http://loinc.org", "code": "11524-6", "display": "EKG study"},
+            "ekg": {"system": "http://loinc.org", "code": "11524-6", "display": "EKG study"},
+            "electrocardiogram": {"system": "http://loinc.org", "code": "11524-6", "display": "EKG study"},
+            "pathology": {"system": "http://loinc.org", "code": "60568-3", "display": "Pathology Synoptic report"},
+            "biopsy report": {"system": "http://loinc.org", "code": "60568-3", "display": "Pathology Synoptic report"},
+            "liver function": {"system": "http://loinc.org", "code": "24325-3", "display": "Liver function panel"},
+            "lft": {"system": "http://loinc.org", "code": "24325-3", "display": "Liver function panel"},
+            "complete blood count": {"system": "http://loinc.org", "code": "58410-2", "display": "Complete blood count (CBC) panel"},
+            "cbc": {"system": "http://loinc.org", "code": "58410-2", "display": "Complete blood count (CBC) panel"},
+            "metastases": {"system": "http://loinc.org", "code": "24627-2", "display": "CT Chest"},
+            "malignancy": {"system": "http://loinc.org", "code": "44139-4", "display": "PET scan whole body"},
+            "adenocarcinoma": {"system": "http://loinc.org", "code": "60568-3", "display": "Pathology Synoptic report"},
+            "tumor progression": {"system": "http://loinc.org", "code": "24558-9", "display": "MRI Brain"},
+            "atrial fibrillation": {"system": "http://loinc.org", "code": "11524-6", "display": "EKG study"},
+            "tuberculosis": {"system": "http://loinc.org", "code": "36643-5", "display": "Chest X-ray"},
         }
     }
 
