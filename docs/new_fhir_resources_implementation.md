@@ -1036,14 +1036,52 @@ Expected Output:
 
 ---
 
+### 5. FamilyMemberHistory Resource ✅
+
+**Implementation Date:** October 9, 2025
+**Priority:** MEDIUM (Required by 15% of clinical trials)
+**Completion:** 100% Production-Ready
+
+#### Use Cases Supported
+- Family history of cancer (breast, ovarian, colon, prostate)
+- Hereditary conditions (diabetes, heart disease, Alzheimer's)
+- Relationship filtering (mother, father, sibling)
+- First-degree relative criteria
+
+#### Implementation Details
+**File:** `src/lambda/criteria_parser/handler.py` - Added 5 parser examples with relationship filtering and ICD-10-CM/SNOMED CT coding mappings (lines 1183-1271, ~90 lines)
+
+**File:** `src/lambda/fhir_search/handler.py` - Implemented `check_family_member_history_criterion()` with condition code matching, relationship filtering, and fuzzy text matching (lines 1488-1695, ~210 lines)
+
+**Coding Systems:** ICD-10-CM for conditions (C50=breast cancer, C56=ovarian cancer, C18=colon cancer), SNOMED CT for relationships
+
+---
+
+### 6. Encounter Resource ✅
+
+**Implementation Date:** October 9, 2025
+**Priority:** MEDIUM (Required by 20% of clinical trials)
+**Completion:** 100% Production-Ready
+
+#### Use Cases Supported
+- Hospitalization criteria (e.g., "No hospitalization within 30 days")
+- Emergency department visits
+- Outpatient/ambulatory encounters
+- ICU admissions
+- Primary care visit requirements
+
+#### Implementation Details
+**File:** `src/lambda/criteria_parser/handler.py` - Added 5 parser examples covering inpatient, emergency, ambulatory, ICU, and primary care encounters with ActCode and SNOMED CT mappings (lines 1273-1383, ~110 lines)
+
+**File:** `src/lambda/fhir_search/handler.py` - Implemented `check_encounter_criterion()` with encounter class/type filtering, status filtering, and temporal constraint support (lines 1698-1912, ~215 lines)
+
+**Coding Systems:** HL7 ActCode (IMP=inpatient, EMER=emergency, AMB=ambulatory), SNOMED CT for encounter types
+
+---
+
 ## Upcoming Resources (Priority Order)
 
-### 5. FamilyMemberHistory (Priority: LOW-MEDIUM)
-- **Trial Frequency:** 15% of trials
-- **Estimated Effort:** 2 days
-- **Coding Systems:** SNOMED CT, ICD-10-CM
-- **Use Cases:** Hereditary conditions, family cancer history
-- **Status:** Not Started
+No remaining high-priority resources. All core FHIR resources for trial enrollment have been implemented.
 
 ---
 

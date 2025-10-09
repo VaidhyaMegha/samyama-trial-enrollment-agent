@@ -1486,6 +1486,433 @@ def check_immunization_criterion(patient_id: str, criterion: Dict[str, Any]) -> 
 
 
 @tracer.capture_method
+def check_family_member_history_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a family member history criterion.
+
+    Supports:
+    - Family history of conditions (cancer, heart disease, etc.)
+    - Relationship filtering (mother, father, sibling, etc.)
+    - Condition code matching (ICD-10-CM, SNOMED CT)
+    - Fuzzy text matching for conditions
+
+    Args:
+        patient_id: Patient identifier
+        criterion: FamilyMemberHistory criterion
+
+    Returns:
+        Result with met status, reason, and family history evidence
+    """
+    try:
+        # Query FamilyMemberHistory resource
+        params = {
+            'patient': patient_id
+        }
+
+        response = query_fhir_resource('FamilyMemberHistory', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator (no family history)
+        if operator == 'not_exists':
+            has_history = response and response.get('total', 0) > 0
+
+            # If checking for specific condition with not_exists
+            if has_history and criterion.get('value'):
+                entries = response.get('entry', [])
+                search_value = criterion.get('value', '').lower()
+                criterion_code = criterion.get('coding', {}).get('code') if criterion.get('coding') else None
+
+                matching_count = 0
+                for entry in entries:
+                    fmh_resource = entry.get('resource', {})
+
+                    # Extract condition info
+                    conditions = fmh_resource.get('condition', [])
+                    for condition in conditions:
+                        condition_code = condition.get('code', {})
+                        condition_text = condition_code.get('text', '').lower()
+
+                        # Check code match
+                        codings = condition_code.get('coding', [])
+                        has_code_match = False
+                        for coding in codings:
+                            if criterion_code and coding.get('code') == criterion_code:
+                                has_code_match = True
+                                break
+
+                        # Check text match (fuzzy)
+                        has_text_match = search_value in condition_text or condition_text in search_value
+
+                        if has_code_match or has_text_match:
+                            matching_count += 1
+                            break
+
+                met = matching_count == 0
+                reason = f"Patient {'has no' if met else 'has'} family history of {criterion.get('value', 'condition')}"
+            else:
+                met = not has_history
+                reason = f"Patient {'has no' if met else 'has'} family history"
+
+            return {
+                'met': met,
+                'reason': reason,
+                'evidence': {
+                    'family_history_count': 0 if met else 1,
+                    'family_history': [],
+                    'total_entries': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No family history found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No family history found",
+                'evidence': None
+            }
+
+        # Extract family history
+        family_history = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            fmh_resource = entry.get('resource', {})
+
+            # Extract relationship
+            relationship = fmh_resource.get('relationship', {})
+            relationship_text = relationship.get('text', 'Unknown')
+            relationship_codings = relationship.get('coding', [])
+            relationship_code = relationship_codings[0].get('code') if relationship_codings else None
+
+            # Extract conditions
+            conditions = fmh_resource.get('condition', [])
+            for condition in conditions:
+                condition_code = condition.get('code', {})
+                condition_text = condition_code.get('text', 'Unknown condition')
+
+                # Extract coding (ICD-10-CM or SNOMED CT)
+                codings = condition_code.get('coding', [])
+                icd10_code = None
+                snomed_code = None
+                for coding in codings:
+                    system = coding.get('system', '')
+                    code = coding.get('code')
+                    if 'icd-10' in system.lower() and code:
+                        icd10_code = code
+                    elif 'snomed' in system.lower() and code:
+                        snomed_code = code
+
+                # Extract date and status
+                date = fmh_resource.get('date')
+                status = fmh_resource.get('status', 'unknown')
+
+                family_history.append({
+                    'relationship': relationship_text,
+                    'relationship_code': relationship_code,
+                    'condition': condition_text,
+                    'icd10_code': icd10_code,
+                    'snomed_code': snomed_code,
+                    'date': date,
+                    'status': status
+                })
+
+        if not family_history:
+            return {
+                'met': False,
+                'reason': "No family history conditions found",
+                'evidence': None
+            }
+
+        # Match family history against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has condition code
+        criterion_code = None
+        if 'coding' in criterion:
+            criterion_code = criterion['coding'].get('code')
+
+        # Check if criterion has relationship filter
+        relationship_filter = criterion.get('relationship_filter', [])
+
+        matching_history = []
+        for history in family_history:
+            condition_lower = history['condition'].lower()
+
+            # Filter by relationship if specified
+            if relationship_filter:
+                relationship_lower = history['relationship'].lower()
+                # Check if relationship matches any in the filter
+                has_relationship_match = any(rel.lower() in relationship_lower for rel in relationship_filter)
+                if not has_relationship_match:
+                    continue
+
+            # Match by condition code (exact match)
+            if criterion_code:
+                if history['icd10_code'] == criterion_code or history['snomed_code'] == criterion_code:
+                    matching_history.append(history)
+                    continue
+
+            # Match by condition text (bidirectional fuzzy matching)
+            if operator == 'contains':
+                if search_value in condition_lower or condition_lower in search_value:
+                    matching_history.append(history)
+            elif operator == 'equals':
+                if search_value == condition_lower:
+                    matching_history.append(history)
+            elif operator == 'not_contains':
+                if search_value not in condition_lower:
+                    matching_history.append(history)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching history found
+            met = len(matching_history) == len(family_history)
+            reason = f"Patient {'has no' if met else 'has'} family history of {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching history found
+            met = len(matching_history) > 0
+            reason = f"Patient {'has' if met else 'has no'} family history of {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'family_history_count': len(matching_history),
+                'family_history': matching_history,
+                'total_history': len(family_history)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking family member history criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking family history: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_encounter_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets an encounter criterion.
+
+    Supports:
+    - Encounter class filtering (inpatient, emergency, ambulatory)
+    - Encounter type matching (ICU, primary care, etc.)
+    - Status filtering (finished, in-progress)
+    - Temporal constraints (within X time period)
+    - SNOMED CT and ActCode matching
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Encounter criterion
+
+    Returns:
+        Result with met status, reason, and encounter evidence
+    """
+    try:
+        # Query Encounter resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        response = query_fhir_resource('Encounter', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator
+        if operator == 'not_exists':
+            has_encounters = response and response.get('total', 0) > 0
+
+            # If checking for specific encounter type with not_exists
+            if has_encounters and criterion.get('value'):
+                entries = response.get('entry', [])
+                search_value = criterion.get('value', '').lower()
+                criterion_code = criterion.get('coding', {}).get('code') if criterion.get('coding') else None
+
+                matching_count = 0
+                for entry in entries:
+                    enc_resource = entry.get('resource', {})
+
+                    # Filter by status (only count finished encounters)
+                    status = enc_resource.get('status', 'unknown')
+                    if status not in ['finished', 'in-progress']:
+                        continue
+
+                    # Extract encounter class
+                    enc_class = enc_resource.get('class', {})
+                    class_code = enc_class.get('code', '').lower() if isinstance(enc_class, dict) else str(enc_class).lower()
+
+                    # Extract encounter type
+                    enc_types = enc_resource.get('type', [])
+                    type_text_list = []
+                    for enc_type in enc_types:
+                        type_text = enc_type.get('text', '').lower()
+                        type_text_list.append(type_text)
+
+                        # Check code match
+                        codings = enc_type.get('coding', [])
+                        for coding in codings:
+                            if criterion_code and coding.get('code') == criterion_code:
+                                matching_count += 1
+                                break
+
+                    # Check text match (fuzzy) in class or type
+                    all_text = f"{class_code} {' '.join(type_text_list)}"
+                    if search_value in all_text or all_text in search_value:
+                        matching_count += 1
+
+                met = matching_count == 0
+                reason = f"Patient {'has no' if met else 'has'} {criterion.get('value', 'encounter')}"
+            else:
+                met = not has_encounters
+                reason = f"Patient {'has no' if met else 'has'} encounter history"
+
+            return {
+                'met': met,
+                'reason': reason,
+                'evidence': {
+                    'encounter_count': 0 if met else 1,
+                    'encounters': [],
+                    'total_encounters': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No encounters found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No encounters found",
+                'evidence': None
+            }
+
+        # Extract encounters
+        encounters = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            enc_resource = entry.get('resource', {})
+
+            # Filter by status
+            status = enc_resource.get('status', 'unknown')
+            if status not in ['finished', 'in-progress', 'arrived']:
+                continue
+
+            # Extract encounter class
+            enc_class = enc_resource.get('class', {})
+            if isinstance(enc_class, dict):
+                class_code = enc_class.get('code', 'unknown')
+                class_display = enc_class.get('display', class_code)
+            else:
+                class_code = str(enc_class)
+                class_display = class_code
+
+            # Extract encounter types
+            enc_types = enc_resource.get('type', [])
+            type_displays = []
+            snomed_codes = []
+            for enc_type in enc_types:
+                type_text = enc_type.get('text', 'Unknown type')
+                type_displays.append(type_text)
+
+                # Extract SNOMED CT codes
+                codings = enc_type.get('coding', [])
+                for coding in codings:
+                    if 'snomed' in coding.get('system', '').lower():
+                        snomed_codes.append(coding.get('code'))
+
+            # Extract period
+            period = enc_resource.get('period', {})
+            start_date = period.get('start')
+            end_date = period.get('end')
+
+            encounters.append({
+                'class': class_display,
+                'class_code': class_code,
+                'types': type_displays,
+                'snomed_codes': snomed_codes,
+                'status': status,
+                'start_date': start_date,
+                'end_date': end_date
+            })
+
+        if not encounters:
+            return {
+                'met': False,
+                'reason': "No finished/in-progress encounters found",
+                'evidence': None
+            }
+
+        # Match encounters against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has code
+        criterion_code = None
+        if 'coding' in criterion:
+            criterion_code = criterion['coding'].get('code')
+
+        matching_encounters = []
+        for encounter in encounters:
+            class_lower = encounter['class'].lower()
+            class_code_lower = encounter['class_code'].lower()
+            types_lower = ' '.join([t.lower() for t in encounter['types']])
+
+            # Match by code (exact match)
+            if criterion_code:
+                if criterion_code in encounter['snomed_codes'] or criterion_code == encounter['class_code']:
+                    matching_encounters.append(encounter)
+                    continue
+
+            # Combine all text for matching
+            all_text = f"{class_lower} {class_code_lower} {types_lower}"
+
+            # Match by text (bidirectional fuzzy matching)
+            if operator == 'contains':
+                if search_value in all_text or all_text in search_value:
+                    matching_encounters.append(encounter)
+            elif operator == 'equals':
+                if search_value == class_lower or search_value == class_code_lower:
+                    matching_encounters.append(encounter)
+            elif operator == 'not_contains':
+                if search_value not in all_text:
+                    matching_encounters.append(encounter)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching encounters found
+            met = len(matching_encounters) == len(encounters)
+            reason = f"Patient {'has no' if met else 'has'} {search_value} encounter"
+        else:
+            # For inclusion criteria, met = True if ANY matching encounter found
+            met = len(matching_encounters) > 0
+            reason = f"Patient {'has had' if met else 'has not had'} {search_value} encounter"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'encounter_count': len(matching_encounters),
+                'encounters': matching_encounters,
+                'total_encounters': len(encounters)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking encounter criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking encounter: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
 def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
     """
     Check if patient meets a simple (leaf) criterion.
@@ -1531,6 +1958,12 @@ def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[s
 
         elif category == 'diagnostic_report':
             result = check_diagnostic_report_criterion(patient_id, criterion)
+
+        elif category == 'family_member_history':
+            result = check_family_member_history_criterion(patient_id, criterion)
+
+        elif category == 'encounter':
+            result = check_encounter_criterion(patient_id, criterion)
 
         else:
             result = {

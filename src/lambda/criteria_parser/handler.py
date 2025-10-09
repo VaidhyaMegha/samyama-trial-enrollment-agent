@@ -1180,6 +1180,208 @@ Output:
   }}
 }}
 
+**FamilyMemberHistory Examples:**
+
+Input: "Family history of breast cancer"
+Output:
+{{
+  "type": "exclusion",
+  "category": "family_member_history",
+  "description": "Family history of breast cancer",
+  "attribute": "condition",
+  "operator": "contains",
+  "value": "breast cancer",
+  "fhir_resource": "FamilyMemberHistory",
+  "fhir_path": "FamilyMemberHistory.condition.code",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "C50",
+    "display": "Malignant neoplasm of breast"
+  }}
+}}
+
+Input: "Mother or sister with ovarian cancer"
+Output:
+{{
+  "type": "exclusion",
+  "category": "family_member_history",
+  "description": "First-degree relative with ovarian cancer",
+  "attribute": "condition",
+  "operator": "contains",
+  "value": "ovarian cancer",
+  "fhir_resource": "FamilyMemberHistory",
+  "fhir_path": "FamilyMemberHistory.condition.code",
+  "relationship_filter": ["mother", "sister"],
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "C56",
+    "display": "Malignant neoplasm of ovary"
+  }}
+}}
+
+Input: "No family history of hereditary cancer syndromes"
+Output:
+{{
+  "type": "inclusion",
+  "category": "family_member_history",
+  "description": "No hereditary cancer syndrome",
+  "attribute": "condition",
+  "operator": "not_exists",
+  "value": "hereditary cancer",
+  "fhir_resource": "FamilyMemberHistory",
+  "fhir_path": "FamilyMemberHistory.condition.code"
+}}
+
+Input: "Parent with early-onset heart disease"
+Output:
+{{
+  "type": "exclusion",
+  "category": "family_member_history",
+  "description": "Parental early-onset heart disease",
+  "attribute": "condition",
+  "operator": "contains",
+  "value": "heart disease",
+  "fhir_resource": "FamilyMemberHistory",
+  "fhir_path": "FamilyMemberHistory.condition.code",
+  "relationship_filter": ["father", "mother"],
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "I25",
+    "display": "Chronic ischemic heart disease"
+  }}
+}}
+
+Input: "Family history of colon cancer in first-degree relative"
+Output:
+{{
+  "type": "exclusion",
+  "category": "family_member_history",
+  "description": "First-degree relative with colon cancer",
+  "attribute": "condition",
+  "operator": "contains",
+  "value": "colon cancer",
+  "fhir_resource": "FamilyMemberHistory",
+  "fhir_path": "FamilyMemberHistory.condition.code",
+  "relationship_filter": ["father", "mother", "brother", "sister"],
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/icd-10-cm",
+    "code": "C18",
+    "display": "Malignant neoplasm of colon"
+  }}
+}}
+
+**Encounter Examples:**
+
+Input: "No hospitalization within 30 days"
+Output:
+{{
+  "type": "exclusion",
+  "category": "encounter",
+  "description": "No hospitalization within 30 days",
+  "attribute": "encounter_class",
+  "operator": "not_exists",
+  "value": "inpatient",
+  "fhir_resource": "Encounter",
+  "fhir_path": "Encounter.class",
+  "temporal_constraint": {{
+    "value": 30,
+    "unit": "days",
+    "direction": "within"
+  }},
+  "coding": {{
+    "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+    "code": "IMP",
+    "display": "inpatient encounter"
+  }}
+}}
+
+Input: "Recent emergency department visit"
+Output:
+{{
+  "type": "inclusion",
+  "category": "encounter",
+  "description": "Recent emergency visit",
+  "attribute": "encounter_class",
+  "operator": "contains",
+  "value": "emergency",
+  "fhir_resource": "Encounter",
+  "fhir_path": "Encounter.class",
+  "coding": {{
+    "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+    "code": "EMER",
+    "display": "emergency"
+  }}
+}}
+
+Input: "Outpatient visit within past 6 months"
+Output:
+{{
+  "type": "inclusion",
+  "category": "encounter",
+  "description": "Outpatient visit within 6 months",
+  "attribute": "encounter_class",
+  "operator": "contains",
+  "value": "ambulatory",
+  "fhir_resource": "Encounter",
+  "fhir_path": "Encounter.class",
+  "temporal_constraint": {{
+    "value": 6,
+    "unit": "months",
+    "direction": "within"
+  }},
+  "coding": {{
+    "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+    "code": "AMB",
+    "display": "ambulatory"
+  }}
+}}
+
+Input: "No ICU admission in past year"
+Output:
+{{
+  "type": "exclusion",
+  "category": "encounter",
+  "description": "No ICU admission in past year",
+  "attribute": "encounter_type",
+  "operator": "not_exists",
+  "value": "intensive care",
+  "fhir_resource": "Encounter",
+  "fhir_path": "Encounter.type",
+  "temporal_constraint": {{
+    "value": 1,
+    "unit": "year",
+    "direction": "within"
+  }},
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "305351004",
+    "display": "Admission to intensive care unit"
+  }}
+}}
+
+Input: "At least one primary care visit annually"
+Output:
+{{
+  "type": "inclusion",
+  "category": "encounter",
+  "description": "Annual primary care visit",
+  "attribute": "encounter_type",
+  "operator": "contains",
+  "value": "primary care",
+  "fhir_resource": "Encounter",
+  "fhir_path": "Encounter.type",
+  "temporal_constraint": {{
+    "value": 1,
+    "unit": "year",
+    "direction": "within"
+  }},
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "185349003",
+    "display": "Encounter for check up"
+  }}
+}}
+
 **Complex Criteria with Logical Operators:**
 
 CRITICAL RULES:
@@ -1718,6 +1920,38 @@ def enhance_with_coding_systems(criteria: List[Dict[str, Any]]) -> List[Dict[str
             "polio": {"system": "http://hl7.org/fhir/sid/cvx", "code": "10", "display": "IPV vaccine"},
             "meningococcal": {"system": "http://hl7.org/fhir/sid/cvx", "code": "114", "display": "Meningococcal MCV4P vaccine"},
             "rabies": {"system": "http://hl7.org/fhir/sid/cvx", "code": "40", "display": "Rabies vaccine"},
+        },
+        "family_member_history": {
+            # ICD-10-CM codes for family medical history conditions
+            "breast cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C50", "display": "Malignant neoplasm of breast"},
+            "ovarian cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C56", "display": "Malignant neoplasm of ovary"},
+            "colon cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C18", "display": "Malignant neoplasm of colon"},
+            "colorectal cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C18", "display": "Malignant neoplasm of colon"},
+            "prostate cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C61", "display": "Malignant neoplasm of prostate"},
+            "lung cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "C34", "display": "Malignant neoplasm of bronchus and lung"},
+            "heart disease": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I25", "display": "Chronic ischemic heart disease"},
+            "cardiac disease": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I25", "display": "Chronic ischemic heart disease"},
+            "diabetes": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "E11", "display": "Type 2 diabetes mellitus"},
+            "hypertension": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I10", "display": "Essential (primary) hypertension"},
+            "stroke": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I63", "display": "Cerebral infarction"},
+            "alzheimer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "G30", "display": "Alzheimer disease"},
+            "hereditary cancer": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "Z80.9", "display": "Family history of malignant neoplasm"},
+            "cancer syndrome": {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "Z80.9", "display": "Family history of malignant neoplasm"},
+        },
+        "encounter": {
+            # HL7 ActCode and SNOMED CT codes for encounter types
+            "inpatient": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "IMP", "display": "inpatient encounter"},
+            "hospitalization": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "IMP", "display": "inpatient encounter"},
+            "emergency": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "EMER", "display": "emergency"},
+            "ed visit": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "EMER", "display": "emergency"},
+            "ambulatory": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB", "display": "ambulatory"},
+            "outpatient": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB", "display": "ambulatory"},
+            "intensive care": {"system": "http://snomed.info/sct", "code": "305351004", "display": "Admission to intensive care unit"},
+            "icu": {"system": "http://snomed.info/sct", "code": "305351004", "display": "Admission to intensive care unit"},
+            "primary care": {"system": "http://snomed.info/sct", "code": "185349003", "display": "Encounter for check up"},
+            "checkup": {"system": "http://snomed.info/sct", "code": "185349003", "display": "Encounter for check up"},
+            "surgical": {"system": "http://snomed.info/sct", "code": "305408004", "display": "Admission to surgical department"},
+            "observation": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "OBSENC", "display": "observation encounter"},
         }
     }
 
