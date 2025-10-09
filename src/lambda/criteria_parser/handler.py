@@ -870,6 +870,316 @@ Output:
   }}
 }}
 
+**MedicationRequest Examples:**
+
+Input: "Prescribed anticoagulant therapy required"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication_request",
+  "description": "Prescribed anticoagulant therapy",
+  "attribute": "medication_name",
+  "operator": "contains",
+  "value": "anticoagulant",
+  "fhir_resource": "MedicationRequest",
+  "fhir_path": "MedicationRequest.medicationCodeableConcept",
+  "intent": "order",
+  "status": "active",
+  "coding": {{
+    "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+    "code": "11289",
+    "display": "Warfarin"
+  }}
+}}
+
+Input: "No concurrent use of chemotherapy"
+Output:
+{{
+  "type": "exclusion",
+  "category": "medication_request",
+  "description": "No concurrent chemotherapy",
+  "attribute": "medication_class",
+  "operator": "not_exists",
+  "value": "chemotherapy",
+  "fhir_resource": "MedicationRequest",
+  "fhir_path": "MedicationRequest.medicationCodeableConcept",
+  "intent": "order"
+}}
+
+Input: "Patients must be on stable dose of metformin for at least 3 months"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication_request",
+  "description": "Stable metformin dose ≥3 months",
+  "attribute": "medication_name",
+  "operator": "contains",
+  "value": "metformin",
+  "fhir_resource": "MedicationRequest",
+  "fhir_path": "MedicationRequest.medicationCodeableConcept",
+  "intent": "order",
+  "status": "active",
+  "temporal_constraint": {{
+    "value": 3,
+    "unit": "months",
+    "direction": "at_least"
+  }},
+  "coding": {{
+    "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+    "code": "6809",
+    "display": "Metformin"
+  }}
+}}
+
+Input: "Prescribed beta-blocker therapy"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication_request",
+  "description": "Beta-blocker prescription",
+  "attribute": "medication_class",
+  "operator": "contains",
+  "value": "beta blocker",
+  "fhir_resource": "MedicationRequest",
+  "fhir_path": "MedicationRequest.medicationCodeableConcept",
+  "intent": "order",
+  "status": "active",
+  "coding": {{
+    "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+    "code": "866511",
+    "display": "Metoprolol"
+  }}
+}}
+
+Input: "No immunosuppressive medications"
+Output:
+{{
+  "type": "exclusion",
+  "category": "medication_request",
+  "description": "No immunosuppressive meds",
+  "attribute": "medication_class",
+  "operator": "not_exists",
+  "value": "immunosuppressive",
+  "fhir_resource": "MedicationRequest",
+  "fhir_path": "MedicationRequest.medicationCodeableConcept",
+  "intent": "order"
+}}
+
+Input: "Prescribed oral diabetes medication"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication_request",
+  "description": "Oral diabetes medication",
+  "attribute": "medication_class",
+  "operator": "contains",
+  "value": "oral diabetes",
+  "fhir_resource": "MedicationRequest",
+  "fhir_path": "MedicationRequest.medicationCodeableConcept",
+  "intent": "order",
+  "status": "active"
+}}
+
+Input: "On prescribed statin therapy at maximum tolerated dose"
+Output:
+{{
+  "type": "inclusion",
+  "category": "medication_request",
+  "description": "Statin at max tolerated dose",
+  "attribute": "medication_class",
+  "operator": "contains",
+  "value": "statin",
+  "fhir_resource": "MedicationRequest",
+  "fhir_path": "MedicationRequest.medicationCodeableConcept",
+  "intent": "order",
+  "status": "active",
+  "coding": {{
+    "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+    "code": "36567",
+    "display": "Simvastatin"
+  }}
+}}
+
+Input: "No prescription for antibiotics in past 30 days"
+Output:
+{{
+  "type": "exclusion",
+  "category": "medication_request",
+  "description": "No antibiotics in past 30 days",
+  "attribute": "medication_class",
+  "operator": "not_exists",
+  "value": "antibiotic",
+  "fhir_resource": "MedicationRequest",
+  "fhir_path": "MedicationRequest.authoredOn",
+  "intent": "order",
+  "temporal_constraint": {{
+    "value": 30,
+    "unit": "days",
+    "direction": "within"
+  }}
+}}
+
+**Immunization Examples:**
+
+Input: "Received influenza vaccination within past year"
+Output:
+{{
+  "type": "inclusion",
+  "category": "immunization",
+  "description": "Influenza vaccination within past year",
+  "attribute": "vaccine_type",
+  "operator": "contains",
+  "value": "influenza",
+  "fhir_resource": "Immunization",
+  "fhir_path": "Immunization.vaccineCode",
+  "status": "completed",
+  "temporal_constraint": {{
+    "value": 1,
+    "unit": "year",
+    "direction": "within"
+  }},
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/cvx",
+    "code": "88",
+    "display": "Influenza virus vaccine"
+  }}
+}}
+
+Input: "Up to date with COVID-19 vaccination series"
+Output:
+{{
+  "type": "inclusion",
+  "category": "immunization",
+  "description": "COVID-19 vaccination current",
+  "attribute": "vaccine_type",
+  "operator": "contains",
+  "value": "covid",
+  "fhir_resource": "Immunization",
+  "fhir_path": "Immunization.vaccineCode",
+  "status": "completed",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/cvx",
+    "code": "208",
+    "display": "COVID-19 vaccine"
+  }}
+}}
+
+Input: "Not previously vaccinated against HPV"
+Output:
+{{
+  "type": "exclusion",
+  "category": "immunization",
+  "description": "No HPV vaccination",
+  "attribute": "vaccine_type",
+  "operator": "not_exists",
+  "value": "HPV",
+  "fhir_resource": "Immunization",
+  "fhir_path": "Immunization.vaccineCode",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/cvx",
+    "code": "165",
+    "display": "HPV9 vaccine"
+  }}
+}}
+
+Input: "Received hepatitis B vaccine series"
+Output:
+{{
+  "type": "inclusion",
+  "category": "immunization",
+  "description": "Hepatitis B vaccination",
+  "attribute": "vaccine_type",
+  "operator": "contains",
+  "value": "hepatitis B",
+  "fhir_resource": "Immunization",
+  "fhir_path": "Immunization.vaccineCode",
+  "status": "completed",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/cvx",
+    "code": "08",
+    "display": "Hepatitis B vaccine"
+  }}
+}}
+
+Input: "Pneumococcal vaccination within 5 years"
+Output:
+{{
+  "type": "inclusion",
+  "category": "immunization",
+  "description": "Pneumococcal vaccine within 5 years",
+  "attribute": "vaccine_type",
+  "operator": "contains",
+  "value": "pneumococcal",
+  "fhir_resource": "Immunization",
+  "fhir_path": "Immunization.occurrenceDateTime",
+  "status": "completed",
+  "temporal_constraint": {{
+    "value": 5,
+    "unit": "years",
+    "direction": "within"
+  }},
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/cvx",
+    "code": "33",
+    "display": "Pneumococcal polysaccharide vaccine"
+  }}
+}}
+
+Input: "No live attenuated vaccines in past 4 weeks"
+Output:
+{{
+  "type": "exclusion",
+  "category": "immunization",
+  "description": "No live vaccines in 4 weeks",
+  "attribute": "vaccine_type",
+  "operator": "not_exists",
+  "value": "live attenuated",
+  "fhir_resource": "Immunization",
+  "fhir_path": "Immunization.occurrenceDateTime",
+  "temporal_constraint": {{
+    "value": 4,
+    "unit": "weeks",
+    "direction": "within"
+  }}
+}}
+
+Input: "History of MMR vaccination"
+Output:
+{{
+  "type": "inclusion",
+  "category": "immunization",
+  "description": "MMR vaccination history",
+  "attribute": "vaccine_type",
+  "operator": "contains",
+  "value": "MMR",
+  "fhir_resource": "Immunization",
+  "fhir_path": "Immunization.vaccineCode",
+  "status": "completed",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/cvx",
+    "code": "03",
+    "display": "MMR vaccine"
+  }}
+}}
+
+Input: "Never received varicella vaccine"
+Output:
+{{
+  "type": "exclusion",
+  "category": "immunization",
+  "description": "No varicella vaccination",
+  "attribute": "vaccine_type",
+  "operator": "not_exists",
+  "value": "varicella",
+  "fhir_resource": "Immunization",
+  "fhir_path": "Immunization.vaccineCode",
+  "coding": {{
+    "system": "http://hl7.org/fhir/sid/cvx",
+    "code": "21",
+    "display": "Varicella virus vaccine"
+  }}
+}}
+
 **Complex Criteria with Logical Operators:**
 
 CRITICAL RULES:
@@ -1353,6 +1663,61 @@ def enhance_with_coding_systems(criteria: List[Dict[str, Any]]) -> List[Dict[str
             "tumor progression": {"system": "http://loinc.org", "code": "24558-9", "display": "MRI Brain"},
             "atrial fibrillation": {"system": "http://loinc.org", "code": "11524-6", "display": "EKG study"},
             "tuberculosis": {"system": "http://loinc.org", "code": "36643-5", "display": "Chest X-ray"},
+        },
+        "medication_request": {
+            # RxNorm codes for medication prescriptions/orders
+            "anticoagulant": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "11289", "display": "Warfarin"},
+            "warfarin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "11289", "display": "Warfarin"},
+            "chemotherapy": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "4492", "display": "Cisplatin"},
+            "metformin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "6809", "display": "Metformin"},
+            "beta blocker": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "866511", "display": "Metoprolol"},
+            "metoprolol": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "866511", "display": "Metoprolol"},
+            "immunosuppressive": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "203134", "display": "Tacrolimus"},
+            "tacrolimus": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "203134", "display": "Tacrolimus"},
+            "oral diabetes": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "6809", "display": "Metformin"},
+            "diabetes medication": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "6809", "display": "Metformin"},
+            "statin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "36567", "display": "Simvastatin"},
+            "simvastatin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "36567", "display": "Simvastatin"},
+            "atorvastatin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "83367", "display": "Atorvastatin"},
+            "antibiotic": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "723", "display": "Amoxicillin"},
+            "amoxicillin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "723", "display": "Amoxicillin"},
+            "ace inhibitor": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "29046", "display": "Lisinopril"},
+            "lisinopril": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "29046", "display": "Lisinopril"},
+            "arb": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "69749", "display": "Losartan"},
+            "losartan": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "69749", "display": "Losartan"},
+            "calcium channel blocker": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "17767", "display": "Amlodipine"},
+            "amlodipine": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "17767", "display": "Amlodipine"},
+            "diuretic": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "5487", "display": "Furosemide"},
+            "furosemide": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "5487", "display": "Furosemide"},
+            "insulin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "5856", "display": "Insulin"},
+            "aspirin": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "1191", "display": "Aspirin"},
+            "corticosteroid": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "8640", "display": "Prednisone"},
+            "prednisone": {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "8640", "display": "Prednisone"},
+        },
+        "immunization": {
+            # CVX codes for vaccines (CDC vaccine codes)
+            "influenza": {"system": "http://hl7.org/fhir/sid/cvx", "code": "88", "display": "Influenza virus vaccine"},
+            "flu": {"system": "http://hl7.org/fhir/sid/cvx", "code": "88", "display": "Influenza virus vaccine"},
+            "covid": {"system": "http://hl7.org/fhir/sid/cvx", "code": "208", "display": "COVID-19 vaccine"},
+            "covid-19": {"system": "http://hl7.org/fhir/sid/cvx", "code": "208", "display": "COVID-19 vaccine"},
+            "hpv": {"system": "http://hl7.org/fhir/sid/cvx", "code": "165", "display": "HPV9 vaccine"},
+            "hepatitis b": {"system": "http://hl7.org/fhir/sid/cvx", "code": "08", "display": "Hepatitis B vaccine"},
+            "hep b": {"system": "http://hl7.org/fhir/sid/cvx", "code": "08", "display": "Hepatitis B vaccine"},
+            "pneumococcal": {"system": "http://hl7.org/fhir/sid/cvx", "code": "33", "display": "Pneumococcal polysaccharide vaccine"},
+            "pneumovax": {"system": "http://hl7.org/fhir/sid/cvx", "code": "33", "display": "Pneumococcal polysaccharide vaccine"},
+            "mmr": {"system": "http://hl7.org/fhir/sid/cvx", "code": "03", "display": "MMR vaccine"},
+            "measles": {"system": "http://hl7.org/fhir/sid/cvx", "code": "03", "display": "MMR vaccine"},
+            "varicella": {"system": "http://hl7.org/fhir/sid/cvx", "code": "21", "display": "Varicella virus vaccine"},
+            "chickenpox": {"system": "http://hl7.org/fhir/sid/cvx", "code": "21", "display": "Varicella virus vaccine"},
+            "tdap": {"system": "http://hl7.org/fhir/sid/cvx", "code": "115", "display": "Tdap vaccine"},
+            "tetanus": {"system": "http://hl7.org/fhir/sid/cvx", "code": "115", "display": "Tdap vaccine"},
+            "hepatitis a": {"system": "http://hl7.org/fhir/sid/cvx", "code": "83", "display": "Hepatitis A vaccine"},
+            "hep a": {"system": "http://hl7.org/fhir/sid/cvx", "code": "83", "display": "Hepatitis A vaccine"},
+            "shingles": {"system": "http://hl7.org/fhir/sid/cvx", "code": "187", "display": "Zoster vaccine recombinant"},
+            "zoster": {"system": "http://hl7.org/fhir/sid/cvx", "code": "187", "display": "Zoster vaccine recombinant"},
+            "polio": {"system": "http://hl7.org/fhir/sid/cvx", "code": "10", "display": "IPV vaccine"},
+            "meningococcal": {"system": "http://hl7.org/fhir/sid/cvx", "code": "114", "display": "Meningococcal MCV4P vaccine"},
+            "rabies": {"system": "http://hl7.org/fhir/sid/cvx", "code": "40", "display": "Rabies vaccine"},
         }
     }
 

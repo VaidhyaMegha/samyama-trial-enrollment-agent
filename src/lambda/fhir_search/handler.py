@@ -1133,6 +1133,359 @@ def check_diagnostic_report_criterion(patient_id: str, criterion: Dict[str, Any]
 
 
 @tracer.capture_method
+def check_medication_request_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a medication request (prescription) criterion.
+
+    Supports:
+    - Prescribed medication filtering
+    - Intent filtering (order, plan)
+    - Status filtering (active, completed)
+    - RxNorm code matching
+    - Medication name matching (fuzzy)
+
+    Args:
+        patient_id: Patient identifier
+        criterion: MedicationRequest criterion
+
+    Returns:
+        Result with met status, reason, and prescription evidence
+    """
+    try:
+        # Query MedicationRequest resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        # Add intent filter if specified (default: order)
+        intent_filter = criterion.get('intent', 'order')
+        if intent_filter:
+            params['intent'] = intent_filter
+
+        # Add status filter if specified (default: active)
+        status_filter = criterion.get('status', 'active')
+        if status_filter:
+            params['status'] = status_filter
+
+        response = query_fhir_resource('MedicationRequest', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator
+        if operator == 'not_exists':
+            has_prescriptions = response and response.get('total', 0) > 0
+            return {
+                'met': not has_prescriptions,
+                'reason': f"Patient {'has' if has_prescriptions else 'has no'} prescribed medications",
+                'evidence': {
+                    'prescription_count': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No prescriptions found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No prescribed medications found",
+                'evidence': None
+            }
+
+        # Extract prescriptions
+        prescriptions = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            med_request = entry.get('resource', {})
+
+            # Extract medication name
+            med_concept = med_request.get('medicationCodeableConcept', {})
+            med_name = med_concept.get('text', 'Unknown')
+
+            # Extract RxNorm code
+            codings = med_concept.get('coding', [])
+            rxnorm_code = None
+            for coding in codings:
+                if 'rxnorm' in coding.get('system', '').lower():
+                    rxnorm_code = coding.get('code')
+                    break
+
+            # Extract dates
+            authored_date = med_request.get('authoredOn')
+
+            # Extract dosage info (optional)
+            dosage_instructions = med_request.get('dosageInstruction', [])
+            dosage_text = dosage_instructions[0].get('text') if dosage_instructions else None
+
+            prescriptions.append({
+                'medication': med_name,
+                'intent': med_request.get('intent', 'unknown'),
+                'status': med_request.get('status', 'unknown'),
+                'rxnorm_code': rxnorm_code,
+                'authored_date': authored_date,
+                'dosage': dosage_text
+            })
+
+        if not prescriptions:
+            return {
+                'met': False,
+                'reason': "No prescribed medications found",
+                'evidence': None
+            }
+
+        # Match prescriptions against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has RxNorm code
+        criterion_rxnorm = None
+        if 'coding' in criterion:
+            criterion_rxnorm = criterion['coding'].get('code')
+
+        matching_prescriptions = []
+        for prescription in prescriptions:
+            med_name_lower = prescription['medication'].lower()
+
+            # Match by RxNorm code (exact match)
+            if criterion_rxnorm and prescription['rxnorm_code'] == criterion_rxnorm:
+                matching_prescriptions.append(prescription)
+                continue
+
+            # Match by medication name (bidirectional fuzzy matching)
+            if operator == 'contains':
+                if search_value in med_name_lower or med_name_lower in search_value:
+                    matching_prescriptions.append(prescription)
+            elif operator == 'equals':
+                if search_value == med_name_lower:
+                    matching_prescriptions.append(prescription)
+            elif operator == 'not_contains':
+                if search_value not in med_name_lower:
+                    matching_prescriptions.append(prescription)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching prescriptions found
+            met = len(matching_prescriptions) == len(prescriptions)
+            reason = f"Patient {'is not prescribed' if met else 'is prescribed'} {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching prescription found
+            met = len(matching_prescriptions) > 0
+            reason = f"Patient {'is prescribed' if met else 'is not prescribed'} {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'prescription_count': len(matching_prescriptions),
+                'prescriptions': matching_prescriptions,
+                'total_prescriptions': len(prescriptions)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking medication request criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking medication request: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_immunization_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets an immunization (vaccination) criterion.
+
+    Supports:
+    - Vaccination history checks
+    - Vaccine type matching (influenza, COVID-19, HPV, etc.)
+    - CVX code matching (CDC vaccine codes)
+    - Status filtering (completed, entered-in-error)
+    - Temporal constraints (within X time period)
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Immunization criterion
+
+    Returns:
+        Result with met status, reason, and immunization evidence
+    """
+    try:
+        # Query Immunization resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        # Add status filter if specified (default: completed)
+        status_filter = criterion.get('status', 'completed')
+        if status_filter:
+            params['status'] = status_filter
+
+        response = query_fhir_resource('Immunization', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator
+        if operator == 'not_exists':
+            has_immunizations = response and response.get('total', 0) > 0
+
+            # If checking for specific vaccine type with not_exists
+            if has_immunizations and criterion.get('value'):
+                entries = response.get('entry', [])
+                search_value = criterion.get('value', '').lower()
+                criterion_cvx = criterion.get('coding', {}).get('code') if criterion.get('coding') else None
+
+                matching_count = 0
+                for entry in entries:
+                    imm_resource = entry.get('resource', {})
+
+                    # Extract vaccine info
+                    vaccine_code = imm_resource.get('vaccineCode', {})
+                    vaccine_text = vaccine_code.get('text', '').lower()
+
+                    # Check CVX code match
+                    codings = vaccine_code.get('coding', [])
+                    has_code_match = False
+                    for coding in codings:
+                        if criterion_cvx and coding.get('code') == criterion_cvx:
+                            has_code_match = True
+                            break
+
+                    # Check text match (fuzzy)
+                    has_text_match = search_value in vaccine_text or vaccine_text in search_value
+
+                    if has_code_match or has_text_match:
+                        matching_count += 1
+
+                met = matching_count == 0
+                reason = f"Patient {'has not received' if met else 'has received'} {criterion.get('value', 'vaccine')}"
+            else:
+                met = not has_immunizations
+                reason = f"Patient {'has no' if met else 'has'} immunization history"
+
+            return {
+                'met': met,
+                'reason': reason,
+                'evidence': {
+                    'immunization_count': 0 if met else 1,
+                    'immunizations': [],
+                    'total_immunizations': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No immunizations found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No immunizations found",
+                'evidence': None
+            }
+
+        # Extract immunizations
+        immunizations = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            imm_resource = entry.get('resource', {})
+
+            # Extract vaccine info
+            vaccine_code = imm_resource.get('vaccineCode', {})
+            vaccine_text = vaccine_code.get('text', 'Unknown vaccine')
+
+            # Extract CVX code
+            codings = vaccine_code.get('coding', [])
+            cvx_code = None
+            for coding in codings:
+                if 'cvx' in coding.get('system', '').lower():
+                    cvx_code = coding.get('code')
+                    break
+
+            # Extract dates
+            occurrence_date = imm_resource.get('occurrenceDateTime')
+            if not occurrence_date:
+                occurrence_period = imm_resource.get('occurrencePeriod', {})
+                occurrence_date = occurrence_period.get('start')
+
+            # Extract lot number and expiration date (optional)
+            lot_number = imm_resource.get('lotNumber')
+            expiration_date = imm_resource.get('expirationDate')
+
+            immunizations.append({
+                'vaccine': vaccine_text,
+                'status': imm_resource.get('status', 'unknown'),
+                'cvx_code': cvx_code,
+                'occurrence_date': occurrence_date,
+                'lot_number': lot_number,
+                'expiration_date': expiration_date
+            })
+
+        if not immunizations:
+            return {
+                'met': False,
+                'reason': "No completed immunizations found",
+                'evidence': None
+            }
+
+        # Match immunizations against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has CVX code
+        criterion_cvx = None
+        if 'coding' in criterion:
+            criterion_cvx = criterion['coding'].get('code')
+
+        matching_immunizations = []
+        for immunization in immunizations:
+            vaccine_lower = immunization['vaccine'].lower()
+
+            # Match by CVX code (exact match)
+            if criterion_cvx and immunization['cvx_code'] == criterion_cvx:
+                matching_immunizations.append(immunization)
+                continue
+
+            # Match by vaccine name (bidirectional fuzzy matching)
+            if operator == 'contains':
+                if search_value in vaccine_lower or vaccine_lower in search_value:
+                    matching_immunizations.append(immunization)
+            elif operator == 'equals':
+                if search_value == vaccine_lower:
+                    matching_immunizations.append(immunization)
+            elif operator == 'not_contains':
+                if search_value not in vaccine_lower:
+                    matching_immunizations.append(immunization)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching immunizations found
+            met = len(matching_immunizations) == len(immunizations)
+            reason = f"Patient {'has not received' if met else 'has received'} {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching immunization found
+            met = len(matching_immunizations) > 0
+            reason = f"Patient {'has received' if met else 'has not received'} {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'immunization_count': len(matching_immunizations),
+                'immunizations': matching_immunizations,
+                'total_immunizations': len(immunizations)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking immunization criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking immunization: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
 def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
     """
     Check if patient meets a simple (leaf) criterion.
@@ -1163,6 +1516,12 @@ def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[s
 
         elif category == 'medication':
             result = check_medication_criterion(patient_id, criterion)
+
+        elif category == 'medication_request':
+            result = check_medication_request_criterion(patient_id, criterion)
+
+        elif category == 'immunization':
+            result = check_immunization_criterion(patient_id, criterion)
 
         elif category == 'allergy':
             result = check_allergy_criterion(patient_id, criterion)

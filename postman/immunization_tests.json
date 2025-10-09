@@ -1,0 +1,509 @@
+{
+  "info": {
+    "name": "Immunization Resource Tests",
+    "description": "Comprehensive tests for Immunization FHIR resource support",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. IMMUNIZATION PARSING TESTS",
+      "item": [
+        {
+          "name": "1.1 Parse: Received influenza vaccination",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-parse-1\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Received influenza vaccination within past year\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Parse: Up to date with COVID-19 vaccination",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-parse-2\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Up to date with COVID-19 vaccination series\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Parse: Not previously vaccinated against HPV",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-parse-3\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- Not previously vaccinated against HPV\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. IMMUNIZATION EVALUATION TESTS",
+      "item": [
+        {
+          "name": "2.1 Evaluate: Flu patient - has influenza vaccine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-eval-1\",\n  \"patient_id\": \"imm-patient-flu-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"Influenza vaccination\",\n      \"attribute\": \"vaccine_type\",\n      \"operator\": \"contains\",\n      \"value\": \"influenza\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\",\n      \"coding\": {\n        \"system\": \"http://hl7.org/fhir/sid/cvx\",\n        \"code\": \"88\",\n        \"display\": \"Influenza virus vaccine\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Evaluate: COVID patient - has COVID vaccine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-eval-2\",\n  \"patient_id\": \"imm-patient-covid-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"COVID-19 vaccination\",\n      \"attribute\": \"vaccine_type\",\n      \"operator\": \"contains\",\n      \"value\": \"covid\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\",\n      \"coding\": {\n        \"system\": \"http://hl7.org/fhir/sid/cvx\",\n        \"code\": \"208\",\n        \"display\": \"COVID-19 vaccine\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 Evaluate: HPV patient - has HPV vaccine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-eval-3\",\n  \"patient_id\": \"imm-patient-hpv-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"HPV vaccination\",\n      \"attribute\": \"vaccine_type\",\n      \"operator\": \"contains\",\n      \"value\": \"hpv\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\",\n      \"coding\": {\n        \"system\": \"http://hl7.org/fhir/sid/cvx\",\n        \"code\": \"165\",\n        \"display\": \"HPV9 vaccine\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 Evaluate: Hepatitis B patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-eval-4\",\n  \"patient_id\": \"imm-patient-hepb-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"Hepatitis B vaccination\",\n      \"attribute\": \"vaccine_type\",\n      \"operator\": \"contains\",\n      \"value\": \"hepatitis b\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\",\n      \"coding\": {\n        \"system\": \"http://hl7.org/fhir/sid/cvx\",\n        \"code\": \"08\",\n        \"display\": \"Hepatitis B vaccine\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 Evaluate: No vaccines patient - should not match",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-eval-5\",\n  \"patient_id\": \"imm-patient-no-vaccines-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"Any vaccination\",\n      \"attribute\": \"vaccine_type\",\n      \"operator\": \"contains\",\n      \"value\": \"vaccine\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. EDGE CASE TESTS",
+      "item": [
+        {
+          "name": "3.1 not_exists: No vaccines (control patient)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-edge-1\",\n  \"patient_id\": \"imm-patient-no-vaccines-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"No vaccination history\",\n      \"attribute\": \"vaccine_type\",\n      \"operator\": \"not_exists\",\n      \"value\": \"\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 not_exists: No varicella (patient without chickenpox vaccine)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-edge-2\",\n  \"patient_id\": \"imm-patient-flu-001\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"No varicella vaccination\",\n      \"attribute\": \"vaccine_type\",\n      \"operator\": \"not_exists\",\n      \"value\": \"varicella\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\",\n      \"coding\": {\n        \"system\": \"http://hl7.org/fhir/sid/cvx\",\n        \"code\": \"21\",\n        \"display\": \"Varicella virus vaccine\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Multiple vaccines: Flu patient has flu vaccine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-edge-3\",\n  \"patient_id\": \"imm-patient-multiple-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"Flu vaccination\",\n      \"attribute\": \"vaccine_type\",\n      \"operator\": \"contains\",\n      \"value\": \"flu\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 Complex: Immunization AND Demographics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-edge-4\",\n  \"patient_id\": \"imm-patient-pneumo-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"logic_operator\": \"AND\",\n      \"description\": \"Pneumococcal vaccine and age >= 65\",\n      \"criteria\": [\n        {\n          \"category\": \"immunization\",\n          \"description\": \"Pneumococcal vaccination\",\n          \"attribute\": \"vaccine_type\",\n          \"operator\": \"contains\",\n          \"value\": \"pneumococcal\",\n          \"fhir_resource\": \"Immunization\",\n          \"fhir_path\": \"Immunization.vaccineCode\",\n          \"status\": \"completed\"\n        },\n        {\n          \"category\": \"demographics\",\n          \"description\": \"Age >= 65 years\",\n          \"attribute\": \"age\",\n          \"operator\": \"greater_than\",\n          \"value\": 65,\n          \"unit\": \"years\",\n          \"fhir_resource\": \"Patient\",\n          \"fhir_path\": \"Patient.birthDate\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. CVX CODE MATCHING TESTS",
+      "item": [
+        {
+          "name": "4.1 Match by CVX code: Influenza (88)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-code-1\",\n  \"patient_id\": \"imm-patient-flu-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"CVX code match - Influenza\",\n      \"attribute\": \"vaccine_code\",\n      \"operator\": \"contains\",\n      \"value\": \"influenza\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\",\n      \"coding\": {\n        \"system\": \"http://hl7.org/fhir/sid/cvx\",\n        \"code\": \"88\",\n        \"display\": \"Influenza virus vaccine\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 Match by CVX code: COVID-19 (208)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-code-2\",\n  \"patient_id\": \"imm-patient-covid-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"CVX code match - COVID-19\",\n      \"attribute\": \"vaccine_code\",\n      \"operator\": \"contains\",\n      \"value\": \"covid\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\",\n      \"coding\": {\n        \"system\": \"http://hl7.org/fhir/sid/cvx\",\n        \"code\": \"208\",\n        \"display\": \"COVID-19 vaccine\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 Match by CVX code: MMR (03)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"imm-code-3\",\n  \"patient_id\": \"imm-patient-mmr-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"immunization\",\n      \"description\": \"CVX code match - MMR\",\n      \"attribute\": \"vaccine_code\",\n      \"operator\": \"contains\",\n      \"value\": \"mmr\",\n      \"fhir_resource\": \"Immunization\",\n      \"fhir_path\": \"Immunization.vaccineCode\",\n      \"status\": \"completed\",\n      \"coding\": {\n        \"system\": \"http://hl7.org/fhir/sid/cvx\",\n        \"code\": \"03\",\n        \"display\": \"MMR vaccine\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
