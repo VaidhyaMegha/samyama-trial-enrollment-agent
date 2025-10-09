@@ -562,6 +562,160 @@ Output:
   "category_filter": "medication"
 }}
 
+**Procedure Examples:**
+
+Input: "No prior surgical resection of primary tumor"
+Output:
+{{
+  "type": "exclusion",
+  "category": "procedure",
+  "description": "No prior surgical resection",
+  "attribute": "procedure_type",
+  "operator": "not_exists",
+  "value": "surgical resection",
+  "fhir_resource": "Procedure",
+  "fhir_path": "Procedure.code",
+  "procedure_category": "surgical-procedure",
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "392021009",
+    "display": "Surgical resection"
+  }}
+}}
+
+Input: "Previous coronary artery bypass graft surgery"
+Output:
+{{
+  "type": "inclusion",
+  "category": "procedure",
+  "description": "Prior CABG surgery",
+  "attribute": "procedure_type",
+  "operator": "contains",
+  "value": "coronary artery bypass graft",
+  "fhir_resource": "Procedure",
+  "fhir_path": "Procedure.code",
+  "procedure_category": "surgical-procedure",
+  "coding": {{
+    "system": "http://www.ama-assn.org/go/cpt",
+    "code": "33533",
+    "display": "Coronary artery bypass, using arterial graft(s)"
+  }}
+}}
+
+Input: "No prior stem cell transplantation"
+Output:
+{{
+  "type": "exclusion",
+  "category": "procedure",
+  "description": "No prior stem cell transplant",
+  "attribute": "procedure_type",
+  "operator": "not_exists",
+  "value": "stem cell transplant",
+  "fhir_resource": "Procedure",
+  "fhir_path": "Procedure.code",
+  "procedure_category": "therapeutic-procedure",
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "234336002",
+    "display": "Hematopoietic stem cell transplant"
+  }}
+}}
+
+Input: "Prior hip replacement surgery"
+Output:
+{{
+  "type": "inclusion",
+  "category": "procedure",
+  "description": "Hip replacement",
+  "attribute": "procedure_type",
+  "operator": "contains",
+  "value": "hip replacement",
+  "fhir_resource": "Procedure",
+  "fhir_path": "Procedure.code",
+  "procedure_category": "surgical-procedure",
+  "coding": {{
+    "system": "http://www.ama-assn.org/go/cpt",
+    "code": "27130",
+    "display": "Total hip arthroplasty"
+  }}
+}}
+
+Input: "No major surgery within 4 weeks"
+Output:
+{{
+  "type": "exclusion",
+  "category": "procedure",
+  "description": "No major surgery within 4 weeks",
+  "attribute": "procedure_type",
+  "operator": "not_exists",
+  "value": "major surgery",
+  "fhir_resource": "Procedure",
+  "fhir_path": "Procedure.performedDateTime",
+  "procedure_category": "surgical-procedure",
+  "temporal_constraint": {{
+    "value": 4,
+    "unit": "weeks",
+    "direction": "within"
+  }}
+}}
+
+Input: "Prior radiation therapy"
+Output:
+{{
+  "type": "inclusion",
+  "category": "procedure",
+  "description": "Prior radiation therapy",
+  "attribute": "procedure_type",
+  "operator": "contains",
+  "value": "radiation therapy",
+  "fhir_resource": "Procedure",
+  "fhir_path": "Procedure.code",
+  "procedure_category": "therapeutic-procedure",
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "108290001",
+    "display": "Radiation oncology AND/OR radiotherapy"
+  }}
+}}
+
+Input: "No history of organ transplant"
+Output:
+{{
+  "type": "exclusion",
+  "category": "procedure",
+  "description": "No organ transplant history",
+  "attribute": "procedure_type",
+  "operator": "not_exists",
+  "value": "organ transplant",
+  "fhir_resource": "Procedure",
+  "fhir_path": "Procedure.code",
+  "procedure_category": "surgical-procedure",
+  "coding": {{
+    "system": "http://snomed.info/sct",
+    "code": "77465005",
+    "display": "Transplantation"
+  }}
+}}
+
+Input: "Previous colonoscopy"
+Output:
+{{
+  "type": "inclusion",
+  "category": "procedure",
+  "description": "Prior colonoscopy",
+  "attribute": "procedure_type",
+  "operator": "contains",
+  "value": "colonoscopy",
+  "fhir_resource": "Procedure",
+  "fhir_path": "Procedure.code",
+  "procedure_category": "diagnostic-procedure",
+  "coding": {{
+    "system": "http://www.ama-assn.org/go/cpt",
+    "code": "45378",
+    "display": "Colonoscopy, flexible"
+  }}
+}}
+
 **Complex Criteria with Logical Operators:**
 
 CRITICAL RULES:
@@ -986,6 +1140,39 @@ def enhance_with_coding_systems(criteria: List[Dict[str, Any]]) -> List[Dict[str
             "platelet": {"system": "http://loinc.org", "code": "777-3", "display": "Platelets [#/volume] in Blood"},
             "alt": {"system": "http://loinc.org", "code": "1742-6", "display": "Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma"},
             "ast": {"system": "http://loinc.org", "code": "1920-8", "display": "Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma"},
+        },
+        "procedure": {
+            # CPT and SNOMED CT codes for procedures
+            "cabg": {"system": "http://www.ama-assn.org/go/cpt", "code": "33533", "display": "Coronary artery bypass, using arterial graft(s)"},
+            "coronary artery bypass": {"system": "http://www.ama-assn.org/go/cpt", "code": "33533", "display": "Coronary artery bypass, using arterial graft(s)"},
+            "appendectomy": {"system": "http://snomed.info/sct", "code": "80146002", "display": "Appendectomy"},
+            "hip replacement": {"system": "http://www.ama-assn.org/go/cpt", "code": "27130", "display": "Total hip arthroplasty"},
+            "total hip arthroplasty": {"system": "http://www.ama-assn.org/go/cpt", "code": "27130", "display": "Total hip arthroplasty"},
+            "knee replacement": {"system": "http://www.ama-assn.org/go/cpt", "code": "27447", "display": "Total knee arthroplasty"},
+            "mastectomy": {"system": "http://www.ama-assn.org/go/cpt", "code": "19307", "display": "Mastectomy, modified radical"},
+            "colonoscopy": {"system": "http://www.ama-assn.org/go/cpt", "code": "45378", "display": "Colonoscopy, flexible"},
+            "biopsy": {"system": "http://snomed.info/sct", "code": "86273004", "display": "Biopsy"},
+            "stem cell transplant": {"system": "http://snomed.info/sct", "code": "234336002", "display": "Hematopoietic stem cell transplant"},
+            "bone marrow transplant": {"system": "http://snomed.info/sct", "code": "234336002", "display": "Hematopoietic stem cell transplant"},
+            "surgical resection": {"system": "http://snomed.info/sct", "code": "392021009", "display": "Surgical resection"},
+            "tumor resection": {"system": "http://snomed.info/sct", "code": "392021009", "display": "Surgical resection"},
+            "radiation therapy": {"system": "http://snomed.info/sct", "code": "108290001", "display": "Radiation oncology AND/OR radiotherapy"},
+            "radiotherapy": {"system": "http://snomed.info/sct", "code": "108290001", "display": "Radiation oncology AND/OR radiotherapy"},
+            "chemotherapy": {"system": "http://snomed.info/sct", "code": "367336001", "display": "Chemotherapy"},
+            "transplant": {"system": "http://snomed.info/sct", "code": "77465005", "display": "Transplantation"},
+            "transplantation": {"system": "http://snomed.info/sct", "code": "77465005", "display": "Transplantation"},
+            "organ transplant": {"system": "http://snomed.info/sct", "code": "77465005", "display": "Transplantation"},
+            "hysterectomy": {"system": "http://www.ama-assn.org/go/cpt", "code": "58150", "display": "Total abdominal hysterectomy"},
+            "prostatectomy": {"system": "http://www.ama-assn.org/go/cpt", "code": "55866", "display": "Laparoscopy, surgical prostatectomy"},
+            "cardiac catheterization": {"system": "http://www.ama-assn.org/go/cpt", "code": "93458", "display": "Catheter placement in coronary artery(s)"},
+            "pacemaker": {"system": "http://www.ama-assn.org/go/cpt", "code": "33206", "display": "Insertion of new or replacement of permanent pacemaker"},
+            "angioplasty": {"system": "http://www.ama-assn.org/go/cpt", "code": "92920", "display": "Percutaneous transluminal coronary angioplasty"},
+            "stent": {"system": "http://www.ama-assn.org/go/cpt", "code": "92928", "display": "Percutaneous transcatheter placement of intracoronary stent(s)"},
+            "cataract surgery": {"system": "http://www.ama-assn.org/go/cpt", "code": "66984", "display": "Extracapsular cataract removal"},
+            "endoscopy": {"system": "http://www.ama-assn.org/go/cpt", "code": "43235", "display": "Esophagogastroduodenoscopy"},
+            "dialysis": {"system": "http://snomed.info/sct", "code": "108241001", "display": "Dialysis procedure"},
+            "major surgery": {"system": "http://snomed.info/sct", "code": "387713003", "display": "Surgical procedure"},
+            "surgery": {"system": "http://snomed.info/sct", "code": "387713003", "display": "Surgical procedure"},
         }
     }
 

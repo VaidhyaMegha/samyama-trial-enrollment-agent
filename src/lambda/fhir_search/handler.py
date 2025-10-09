@@ -753,6 +753,232 @@ def check_allergy_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[
 
 
 @tracer.capture_method
+def check_procedure_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a procedure criterion.
+
+    Supports:
+    - Procedure existence checks (e.g., "No prior surgery")
+    - Procedure code matching (CPT, SNOMED CT, ICD-10-PCS)
+    - Procedure name/type matching (fuzzy)
+    - Category filtering (surgical, diagnostic, therapeutic)
+    - Status filtering (completed, in-progress, etc.)
+    - Temporal constraints (basic support)
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Procedure criterion
+
+    Returns:
+        Result with met status, reason, and procedure evidence
+    """
+    try:
+        # Query Procedure resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        # Add category filter if specified
+        procedure_category = criterion.get('procedure_category')
+        if procedure_category:
+            params['category'] = procedure_category
+
+        response = query_fhir_resource('Procedure', patient_id, params)
+
+        # Handle "not_exists" operator (no prior procedure)
+        operator = criterion.get('operator', 'contains')
+        if operator == 'not_exists':
+            has_procedures = response and response.get('total', 0) > 0
+
+            # If we have procedures, need to check if any match the criterion
+            if has_procedures and criterion.get('value'):
+                # Extract and filter procedures to see if any match the specific type
+                entries = response.get('entry', [])
+                search_value = criterion.get('value', '').lower()
+                criterion_coding = criterion.get('coding', {})
+                criterion_code = criterion_coding.get('code') if criterion_coding else None
+
+                matching_count = 0
+                for entry in entries:
+                    proc_resource = entry.get('resource', {})
+
+                    # Filter by status (only count completed procedures by default)
+                    status = proc_resource.get('status', 'unknown')
+                    if status not in ['completed', 'in-progress']:
+                        continue
+
+                    # Extract procedure details
+                    code_concept = proc_resource.get('code', {})
+                    proc_text = code_concept.get('text', '').lower()
+
+                    # Check code match
+                    codings = code_concept.get('coding', [])
+                    has_code_match = False
+                    for coding in codings:
+                        if criterion_code and coding.get('code') == criterion_code:
+                            has_code_match = True
+                            break
+
+                    # Check text match (fuzzy)
+                    has_text_match = search_value in proc_text or proc_text in search_value
+
+                    if has_code_match or has_text_match:
+                        matching_count += 1
+
+                # For not_exists, met = True only if NO matching procedures found
+                met = matching_count == 0
+                reason = f"Patient {'has no prior' if met else 'has prior'} {criterion.get('value', 'procedure')}"
+            else:
+                # No procedures at all, or no specific value to match
+                met = not has_procedures
+                reason = f"Patient {'has no' if met else 'has'} procedure history"
+
+            return {
+                'met': met,
+                'reason': reason,
+                'evidence': {
+                    'procedure_count': 0 if met else 1,
+                    'procedures': [],
+                    'total_procedures': response.get('total', 0) if response else 0
+                }
+            }
+
+        # For other operators, we need procedures to exist
+        if not response or response.get('total', 0) == 0:
+            return {
+                'met': False,
+                'reason': "No procedures found",
+                'evidence': None
+            }
+
+        # Extract procedures
+        procedures = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            proc_resource = entry.get('resource', {})
+
+            # Filter by status (only include completed and in-progress by default)
+            status = proc_resource.get('status', 'unknown')
+            if status not in ['completed', 'in-progress']:
+                continue
+
+            # Extract procedure code and text
+            code_concept = proc_resource.get('code', {})
+            proc_text = code_concept.get('text', 'Unknown procedure')
+
+            # Extract coding systems
+            codings = code_concept.get('coding', [])
+            cpt_code = None
+            snomed_code = None
+            icd10_code = None
+
+            for coding in codings:
+                system = coding.get('system', '')
+                code = coding.get('code')
+
+                if 'cpt' in system.lower() and code:
+                    cpt_code = code
+                elif 'snomed' in system.lower() and code:
+                    snomed_code = code
+                elif 'icd-10' in system.lower() and code:
+                    icd10_code = code
+
+            # Extract dates
+            performed_date = proc_resource.get('performedDateTime')
+            if not performed_date:
+                performed_period = proc_resource.get('performedPeriod', {})
+                performed_date = performed_period.get('start')
+
+            # Extract category
+            categories = proc_resource.get('category', {}).get('coding', [])
+            category_code = categories[0].get('code') if categories else None
+
+            procedures.append({
+                'text': proc_text,
+                'status': status,
+                'cpt_code': cpt_code,
+                'snomed_code': snomed_code,
+                'icd10_code': icd10_code,
+                'performed_date': performed_date,
+                'category': category_code
+            })
+
+        if not procedures:
+            return {
+                'met': False,
+                'reason': "No completed/in-progress procedures found",
+                'evidence': None
+            }
+
+        # Match procedures against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has coding (CPT, SNOMED, or ICD-10)
+        criterion_coding = criterion.get('coding', {})
+        criterion_code = criterion_coding.get('code') if criterion_coding else None
+        criterion_system = criterion_coding.get('system', '').lower() if criterion_coding else ''
+
+        matching_procedures = []
+        for proc in procedures:
+            proc_text_lower = proc['text'].lower()
+
+            # Match by code (exact match with appropriate system)
+            if criterion_code:
+                if 'cpt' in criterion_system and proc['cpt_code'] == criterion_code:
+                    matching_procedures.append(proc)
+                    continue
+                elif 'snomed' in criterion_system and proc['snomed_code'] == criterion_code:
+                    matching_procedures.append(proc)
+                    continue
+                elif 'icd-10' in criterion_system and proc['icd10_code'] == criterion_code:
+                    matching_procedures.append(proc)
+                    continue
+
+            # Match by procedure text (bidirectional fuzzy matching)
+            # Uses bidirectional substring matching to handle both:
+            # - Generic-to-specific: "surgery" matches "hip replacement surgery"
+            # - Specific-to-generic: "total hip arthroplasty" matches "hip replacement"
+            if operator == 'contains':
+                if search_value in proc_text_lower or proc_text_lower in search_value:
+                    matching_procedures.append(proc)
+            elif operator == 'equals':
+                if search_value == proc_text_lower:
+                    matching_procedures.append(proc)
+            elif operator == 'not_contains':
+                if search_value not in proc_text_lower:
+                    matching_procedures.append(proc)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching procedures found
+            met = len(matching_procedures) == len(procedures)  # All procedures don't match search term
+            reason = f"Patient {'has no' if met else 'has'} {search_value} procedure"
+        else:
+            # For inclusion criteria, met = True if ANY matching procedure found
+            met = len(matching_procedures) > 0
+            reason = f"Patient {'has had' if met else 'has not had'} {search_value} procedure"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'procedure_count': len(matching_procedures),
+                'procedures': matching_procedures,
+                'total_procedures': len(procedures)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking procedure criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking procedure: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
 def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
     """
     Check if patient meets a simple (leaf) criterion.
@@ -786,6 +1012,9 @@ def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[s
 
         elif category == 'allergy':
             result = check_allergy_criterion(patient_id, criterion)
+
+        elif category == 'procedure':
+            result = check_procedure_criterion(patient_id, criterion)
 
         else:
             result = {

@@ -1,0 +1,354 @@
+{
+  "info": {
+    "name": "Complex Criteria Tests - Production Ready",
+    "description": "Comprehensive test suite for complex logical criteria (AND/OR/NOT)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Simple OR - Diabetes or Pre-diabetes",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"complex-or-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Patient has Type 2 Diabetes OR Pre-diabetes\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Simple AND - Diabetes and ECOG",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"complex-and-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Type 2 Diabetes AND ECOG performance status 0-1\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Nested AND/OR - (Diabetes OR Pre-diabetes) AND ECOG",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"complex-nested-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- (Type 2 Diabetes OR Pre-diabetes) AND ECOG performance status 0-1\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. Complex Oncology - (Breast OR Ovarian) AND (Stage II OR III) AND ECOG",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"oncology-complex-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- (Breast Cancer OR Ovarian Cancer) AND (Stage II OR Stage III) AND ECOG performance status 0-1\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Triple Nested - ((Diabetes OR Pre-diabetes) AND Age 40+) OR (Hypertension AND Age 50+)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"triple-nested-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- ((Type 2 Diabetes OR Pre-diabetes) AND Age 40 years or older) OR (Hypertension AND Age 50 years or older)\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. Cardiovascular Complex - (HTN AND Diabetes) OR Prior MI",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"cardio-complex-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- (Hypertension AND Type 2 Diabetes) OR Prior Myocardial Infarction\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. Multiple OR Groups - (A OR B) AND (C OR D) AND (E OR F)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"multi-or-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- (Type 2 Diabetes OR Pre-diabetes) AND (ECOG 0 OR ECOG 1) AND (Age 40-65 OR Age 18-39 with risk factors)\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8. Real-World Diabetes Trial",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"diabetes-real-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- (Type 2 Diabetes OR Pre-diabetes with HbA1c greater than 6.5%) AND Age between 18 and 75 years AND ECOG performance status 0-1\\n\\nExclusion Criteria:\\n- Chronic kidney disease stage 4 or higher\\n- Pregnant or breastfeeding\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "9. Evaluate - Diabetes Patient (Should Be Eligible)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patient_id\": \"diabetes-patient-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"logic_operator\": \"AND\",\n      \"description\": \"(Type 2 Diabetes OR Pre-diabetes) AND ECOG 0-1\",\n      \"criteria\": [\n        {\n          \"logic_operator\": \"OR\",\n          \"description\": \"Type 2 Diabetes or Pre-diabetes\",\n          \"criteria\": [\n            {\n              \"category\": \"condition\",\n              \"description\": \"Type 2 Diabetes\",\n              \"attribute\": \"diagnosis\",\n              \"operator\": \"contains\",\n              \"value\": \"Type 2 Diabetes\",\n              \"fhir_resource\": \"Condition\",\n              \"fhir_path\": \"Condition.code\"\n            },\n            {\n              \"category\": \"condition\",\n              \"description\": \"Pre-diabetes\",\n              \"attribute\": \"diagnosis\",\n              \"operator\": \"contains\",\n              \"value\": \"Pre-diabetes\",\n              \"fhir_resource\": \"Condition\",\n              \"fhir_path\": \"Condition.code\"\n            }\n          ]\n        },\n        {\n          \"category\": \"performance_status\",\n          \"description\": \"ECOG 0-1\",\n          \"attribute\": \"ecog\",\n          \"operator\": \"between\",\n          \"value\": [0, 1],\n          \"fhir_resource\": \"Observation\",\n          \"coding\": {\n            \"system\": \"http://loinc.org\",\n            \"code\": \"89247-1\"\n          }\n        }\n      ]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "check-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10. Evaluate - ECOG Level 0 (Should Pass 0-1)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patient_id\": \"ecog-0-patient\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"performance_status\",\n      \"description\": \"ECOG 0-1\",\n      \"attribute\": \"ecog\",\n      \"operator\": \"between\",\n      \"value\": [0, 1],\n      \"fhir_resource\": \"Observation\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"89247-1\"\n      }\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "check-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11. Evaluate - ECOG Level 3 (Should Fail 0-1)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patient_id\": \"ecog-3-patient\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"performance_status\",\n      \"description\": \"ECOG 0-1\",\n      \"attribute\": \"ecog\",\n      \"operator\": \"between\",\n      \"value\": [0, 1],\n      \"fhir_resource\": \"Observation\",\n      \"coding\": {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"89247-1\"\n      }\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "check-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12. Four-Level Nesting - Very Complex",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"four-level-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- (((Type 2 Diabetes OR Pre-diabetes) AND Age 40+) OR (Hypertension AND Age 50+)) AND ECOG 0-1\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13. Multiple Conditions OR - Any Cancer Type",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"multi-cancer-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Breast Cancer OR Ovarian Cancer OR Lung Cancer OR Colorectal Cancer\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14. Performance Status OR - ECOG or Karnofsky",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"perf-status-or-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- ECOG performance status 0-1 OR Karnofsky performance status 70 or higher\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15. Age Range Complex - Multiple Age Groups",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"age-complex-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- (Age between 18 and 35 years OR Age between 50 and 70 years) AND Type 2 Diabetes\"\n}"
+        },
+        "url": {
+          "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+          "protocol": "https",
+          "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+          "path": ["prod", "parse-criteria"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
