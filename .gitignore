@@ -108,3 +108,5 @@ test-*.json
 docs/_build/
 site/
 docs/PRs/
+docs/next_priority.md
+postman/
