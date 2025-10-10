@@ -1,0 +1,279 @@
+{
+  "info": {
+    "name": "Medication & Allergy Tests - Production Ready",
+    "description": "Comprehensive test suite for MedicationStatement and AllergyIntolerance support",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "MEDICATION TESTS",
+      "item": [
+        {
+          "name": "1. Parse - Currently taking metformin",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"med-parse-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Currently taking metformin\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "parse-criteria"]
+            }
+          }
+        },
+        {
+          "name": "2. Parse - No insulin use (exclusion)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"med-parse-002\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- History of insulin use\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "parse-criteria"]
+            }
+          }
+        },
+        {
+          "name": "3. Parse - On statin therapy",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"med-parse-003\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- On stable statin therapy\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "parse-criteria"]
+            }
+          }
+        },
+        {
+          "name": "4. Evaluate - Metformin patient (PASS)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"ec19f6c4-95a5-42ed-bbf4-3d4f8684187f\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication\",\n      \"description\": \"Currently taking metformin\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"metformin\",\n      \"fhir_resource\": \"MedicationStatement\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        },
+        {
+          "name": "5. Evaluate - Insulin patient (PASS insulin check)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"89e90996-a19d-4fdc-9a5b-79b380f5c80f\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication\",\n      \"description\": \"Currently taking insulin\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"insulin\",\n      \"fhir_resource\": \"MedicationStatement\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        },
+        {
+          "name": "6. Evaluate - Statin patient (PASS)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"5168b5d8-18ed-489b-a0af-9fa7f2426be3\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication\",\n      \"description\": \"On statin therapy\",\n      \"attribute\": \"medication_class\",\n      \"operator\": \"contains\",\n      \"value\": \"statin\",\n      \"fhir_resource\": \"MedicationStatement\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        },
+        {
+          "name": "7. Evaluate - No meds patient (FAIL medication check)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"faae24f8-d0e5-46e7-aef8-70b3ae0dae40\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication\",\n      \"description\": \"Currently taking metformin\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"metformin\",\n      \"fhir_resource\": \"MedicationStatement\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        },
+        {
+          "name": "8. Evaluate - No insulin exclusion (PASS - no insulin)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"ec19f6c4-95a5-42ed-bbf4-3d4f8684187f\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"medication\",\n      \"description\": \"No history of insulin use\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"not_contains\",\n      \"value\": \"insulin\",\n      \"fhir_resource\": \"MedicationStatement\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ALLERGY TESTS",
+      "item": [
+        {
+          "name": "9. Parse - No penicillin allergy",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"allergy-parse-001\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- Allergy to penicillin\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "parse-criteria"]
+            }
+          }
+        },
+        {
+          "name": "10. Parse - No known drug allergies",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"allergy-parse-002\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- No known drug allergies\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "parse-criteria"]
+            }
+          }
+        },
+        {
+          "name": "11. Evaluate - Penicillin allergy patient (FAIL exclusion)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"a303e6ae-0cd0-44e1-8cd0-d8c7aaa35508\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"allergy\",\n      \"description\": \"No allergy to penicillin\",\n      \"attribute\": \"allergen\",\n      \"operator\": \"not_contains\",\n      \"value\": \"penicillin\",\n      \"fhir_resource\": \"AllergyIntolerance\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        },
+        {
+          "name": "12. Evaluate - Peanut allergy patient (PASS allergy check)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"6f119cb8-aaa9-4011-896d-484a415b2ea5\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"allergy\",\n      \"description\": \"Peanut allergy\",\n      \"attribute\": \"allergen\",\n      \"operator\": \"contains\",\n      \"value\": \"peanut\",\n      \"fhir_resource\": \"AllergyIntolerance\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        },
+        {
+          "name": "13. Evaluate - No allergy patient (PASS - no allergies)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"df8c3928-0fd0-419f-8c87-d45f7e22261f\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"allergy\",\n      \"description\": \"No known drug allergies\",\n      \"attribute\": \"drug_allergy\",\n      \"operator\": \"not_exists\",\n      \"value\": null,\n      \"fhir_resource\": \"AllergyIntolerance\",\n      \"category_filter\": \"medication\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "COMBINED TESTS",
+      "item": [
+        {
+          "name": "14. Parse - Diabetes trial with meds and allergies",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"combined-001\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Currently taking metformin\\n- ECOG performance status 0-1\\n\\nExclusion Criteria:\\n- Allergy to penicillin\\n- History of insulin use\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "parse-criteria"]
+            }
+          }
+        },
+        {
+          "name": "15. Evaluate - Complex trial (Multiple criteria)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"ec19f6c4-95a5-42ed-bbf4-3d4f8684187f\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication\",\n      \"description\": \"Taking metformin\",\n      \"operator\": \"contains\",\n      \"value\": \"metformin\",\n      \"fhir_resource\": \"MedicationStatement\"\n    },\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"medication\",\n      \"description\": \"No insulin\",\n      \"operator\": \"not_contains\",\n      \"value\": \"insulin\",\n      \"fhir_resource\": \"MedicationStatement\"\n    },\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"allergy\",\n      \"description\": \"No penicillin allergy\",\n      \"operator\": \"not_contains\",\n      \"value\": \"penicillin\",\n      \"fhir_resource\": \"AllergyIntolerance\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/check-criteria",
+              "protocol": "https",
+              "host": ["gt7dlyqj78", "execute-api", "us-east-1", "amazonaws", "com"],
+              "path": ["prod", "check-criteria"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

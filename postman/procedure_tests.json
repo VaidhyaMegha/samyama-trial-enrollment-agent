@@ -1,0 +1,509 @@
+{
+  "info": {
+    "name": "Procedure Resource Tests",
+    "description": "Comprehensive tests for Procedure FHIR resource support",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. PROCEDURE PARSING TESTS",
+      "item": [
+        {
+          "name": "1.1 Parse: No prior surgical resection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-test-1\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- No prior surgical resection of primary tumor\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Parse: Previous CABG surgery",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-test-2\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Previous coronary artery bypass graft surgery\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Parse: No major surgery within 4 weeks",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-test-3\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- No major surgery within 4 weeks\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. PROCEDURE EVALUATION TESTS",
+      "item": [
+        {
+          "name": "2.1 Evaluate: CABG patient - has prior CABG",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-eval-1\",\n  \"patient_id\": \"proc-patient-cabg-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"Prior CABG surgery\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"contains\",\n      \"value\": \"coronary artery bypass\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\",\n      \"procedure_category\": \"surgical-procedure\",\n      \"coding\": {\n        \"system\": \"http://www.ama-assn.org/go/cpt\",\n        \"code\": \"33533\",\n        \"display\": \"Coronary artery bypass, using arterial graft(s)\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Evaluate: Hip replacement patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-eval-2\",\n  \"patient_id\": \"proc-patient-hip-replacement-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"Hip replacement\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"contains\",\n      \"value\": \"hip replacement\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\",\n      \"procedure_category\": \"surgical-procedure\",\n      \"coding\": {\n        \"system\": \"http://www.ama-assn.org/go/cpt\",\n        \"code\": \"27130\",\n        \"display\": \"Total hip arthroplasty\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 Evaluate: Cancer surgery patient - surgical resection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-eval-3\",\n  \"patient_id\": \"proc-patient-cancer-surgery-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"Prior surgical resection\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"contains\",\n      \"value\": \"surgical resection\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\",\n      \"procedure_category\": \"surgical-procedure\",\n      \"coding\": {\n        \"system\": \"http://snomed.info/sct\",\n        \"code\": \"392021009\",\n        \"display\": \"Surgical resection\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 Evaluate: Multiple procedures patient - colonoscopy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-eval-4\",\n  \"patient_id\": \"proc-patient-multiple-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"Prior colonoscopy\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"contains\",\n      \"value\": \"colonoscopy\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\",\n      \"procedure_category\": \"diagnostic-procedure\",\n      \"coding\": {\n        \"system\": \"http://www.ama-assn.org/go/cpt\",\n        \"code\": \"45378\",\n        \"display\": \"Colonoscopy, flexible\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 Evaluate: No procedures patient - should not match",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-eval-5\",\n  \"patient_id\": \"proc-patient-no-procedures-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"Prior surgery\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"contains\",\n      \"value\": \"surgery\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. EDGE CASE TESTS",
+      "item": [
+        {
+          "name": "3.1 not_exists: No prior surgery (control patient)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-edge-1\",\n  \"patient_id\": \"proc-patient-no-procedures-001\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"No prior surgical resection\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"not_exists\",\n      \"value\": \"surgical resection\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 not_exists: No CABG (patient with CABG should fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-edge-2\",\n  \"patient_id\": \"proc-patient-cabg-001\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"No prior CABG\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"not_exists\",\n      \"value\": \"coronary artery bypass\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\",\n      \"coding\": {\n        \"system\": \"http://www.ama-assn.org/go/cpt\",\n        \"code\": \"33533\",\n        \"display\": \"Coronary artery bypass, using arterial graft(s)\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Fuzzy match: 'surgery' matches 'hip replacement surgery'",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-edge-3\",\n  \"patient_id\": \"proc-patient-hip-replacement-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"Prior surgery\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"contains\",\n      \"value\": \"surgery\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 Complex: Procedure AND Condition",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-edge-4\",\n  \"patient_id\": \"proc-patient-cabg-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"logic_operator\": \"AND\",\n      \"description\": \"Prior CABG and age >= 18\",\n      \"criteria\": [\n        {\n          \"category\": \"procedure\",\n          \"description\": \"Prior CABG\",\n          \"attribute\": \"procedure_type\",\n          \"operator\": \"contains\",\n          \"value\": \"coronary artery bypass\",\n          \"fhir_resource\": \"Procedure\",\n          \"fhir_path\": \"Procedure.code\"\n        },\n        {\n          \"category\": \"demographics\",\n          \"description\": \"Age >= 18 years\",\n          \"attribute\": \"age\",\n          \"operator\": \"greater_than\",\n          \"value\": 18,\n          \"unit\": \"years\",\n          \"fhir_resource\": \"Patient\",\n          \"fhir_path\": \"Patient.birthDate\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. CODE MATCHING TESTS",
+      "item": [
+        {
+          "name": "4.1 Match by CPT code: CABG",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-code-1\",\n  \"patient_id\": \"proc-patient-cabg-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"CPT code match\",\n      \"attribute\": \"procedure_code\",\n      \"operator\": \"contains\",\n      \"value\": \"cabg\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\",\n      \"coding\": {\n        \"system\": \"http://www.ama-assn.org/go/cpt\",\n        \"code\": \"33533\",\n        \"display\": \"Coronary artery bypass, using arterial graft(s)\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 Match by SNOMED code: Appendectomy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-code-2\",\n  \"patient_id\": \"proc-patient-appendectomy-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"SNOMED code match\",\n      \"attribute\": \"procedure_code\",\n      \"operator\": \"contains\",\n      \"value\": \"appendectomy\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\",\n      \"coding\": {\n        \"system\": \"http://snomed.info/sct\",\n        \"code\": \"80146002\",\n        \"display\": \"Appendectomy\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 Match without code (text fallback)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"procedure-code-3\",\n  \"patient_id\": \"proc-patient-multiple-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"procedure\",\n      \"description\": \"Biopsy (no code)\",\n      \"attribute\": \"procedure_type\",\n      \"operator\": \"contains\",\n      \"value\": \"biopsy\",\n      \"fhir_resource\": \"Procedure\",\n      \"fhir_path\": \"Procedure.code\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

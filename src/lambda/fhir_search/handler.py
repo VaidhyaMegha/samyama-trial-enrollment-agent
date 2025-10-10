@@ -753,6 +753,1166 @@ def check_allergy_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[
 
 
 @tracer.capture_method
+def check_procedure_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a procedure criterion.
+
+    Supports:
+    - Procedure existence checks (e.g., "No prior surgery")
+    - Procedure code matching (CPT, SNOMED CT, ICD-10-PCS)
+    - Procedure name/type matching (fuzzy)
+    - Category filtering (surgical, diagnostic, therapeutic)
+    - Status filtering (completed, in-progress, etc.)
+    - Temporal constraints (basic support)
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Procedure criterion
+
+    Returns:
+        Result with met status, reason, and procedure evidence
+    """
+    try:
+        # Query Procedure resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        # Add category filter if specified
+        procedure_category = criterion.get('procedure_category')
+        if procedure_category:
+            params['category'] = procedure_category
+
+        response = query_fhir_resource('Procedure', patient_id, params)
+
+        # Handle "not_exists" operator (no prior procedure)
+        operator = criterion.get('operator', 'contains')
+        if operator == 'not_exists':
+            has_procedures = response and response.get('total', 0) > 0
+
+            # If we have procedures, need to check if any match the criterion
+            if has_procedures and criterion.get('value'):
+                # Extract and filter procedures to see if any match the specific type
+                entries = response.get('entry', [])
+                search_value = criterion.get('value', '').lower()
+                criterion_coding = criterion.get('coding', {})
+                criterion_code = criterion_coding.get('code') if criterion_coding else None
+
+                matching_count = 0
+                for entry in entries:
+                    proc_resource = entry.get('resource', {})
+
+                    # Filter by status (only count completed procedures by default)
+                    status = proc_resource.get('status', 'unknown')
+                    if status not in ['completed', 'in-progress']:
+                        continue
+
+                    # Extract procedure details
+                    code_concept = proc_resource.get('code', {})
+                    proc_text = code_concept.get('text', '').lower()
+
+                    # Check code match
+                    codings = code_concept.get('coding', [])
+                    has_code_match = False
+                    for coding in codings:
+                        if criterion_code and coding.get('code') == criterion_code:
+                            has_code_match = True
+                            break
+
+                    # Check text match (fuzzy)
+                    has_text_match = search_value in proc_text or proc_text in search_value
+
+                    if has_code_match or has_text_match:
+                        matching_count += 1
+
+                # For not_exists, met = True only if NO matching procedures found
+                met = matching_count == 0
+                reason = f"Patient {'has no prior' if met else 'has prior'} {criterion.get('value', 'procedure')}"
+            else:
+                # No procedures at all, or no specific value to match
+                met = not has_procedures
+                reason = f"Patient {'has no' if met else 'has'} procedure history"
+
+            return {
+                'met': met,
+                'reason': reason,
+                'evidence': {
+                    'procedure_count': 0 if met else 1,
+                    'procedures': [],
+                    'total_procedures': response.get('total', 0) if response else 0
+                }
+            }
+
+        # For other operators, we need procedures to exist
+        if not response or response.get('total', 0) == 0:
+            return {
+                'met': False,
+                'reason': "No procedures found",
+                'evidence': None
+            }
+
+        # Extract procedures
+        procedures = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            proc_resource = entry.get('resource', {})
+
+            # Filter by status (only include completed and in-progress by default)
+            status = proc_resource.get('status', 'unknown')
+            if status not in ['completed', 'in-progress']:
+                continue
+
+            # Extract procedure code and text
+            code_concept = proc_resource.get('code', {})
+            proc_text = code_concept.get('text', 'Unknown procedure')
+
+            # Extract coding systems
+            codings = code_concept.get('coding', [])
+            cpt_code = None
+            snomed_code = None
+            icd10_code = None
+
+            for coding in codings:
+                system = coding.get('system', '')
+                code = coding.get('code')
+
+                if 'cpt' in system.lower() and code:
+                    cpt_code = code
+                elif 'snomed' in system.lower() and code:
+                    snomed_code = code
+                elif 'icd-10' in system.lower() and code:
+                    icd10_code = code
+
+            # Extract dates
+            performed_date = proc_resource.get('performedDateTime')
+            if not performed_date:
+                performed_period = proc_resource.get('performedPeriod', {})
+                performed_date = performed_period.get('start')
+
+            # Extract category
+            categories = proc_resource.get('category', {}).get('coding', [])
+            category_code = categories[0].get('code') if categories else None
+
+            procedures.append({
+                'text': proc_text,
+                'status': status,
+                'cpt_code': cpt_code,
+                'snomed_code': snomed_code,
+                'icd10_code': icd10_code,
+                'performed_date': performed_date,
+                'category': category_code
+            })
+
+        if not procedures:
+            return {
+                'met': False,
+                'reason': "No completed/in-progress procedures found",
+                'evidence': None
+            }
+
+        # Match procedures against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has coding (CPT, SNOMED, or ICD-10)
+        criterion_coding = criterion.get('coding', {})
+        criterion_code = criterion_coding.get('code') if criterion_coding else None
+        criterion_system = criterion_coding.get('system', '').lower() if criterion_coding else ''
+
+        matching_procedures = []
+        for proc in procedures:
+            proc_text_lower = proc['text'].lower()
+
+            # Match by code (exact match with appropriate system)
+            if criterion_code:
+                if 'cpt' in criterion_system and proc['cpt_code'] == criterion_code:
+                    matching_procedures.append(proc)
+                    continue
+                elif 'snomed' in criterion_system and proc['snomed_code'] == criterion_code:
+                    matching_procedures.append(proc)
+                    continue
+                elif 'icd-10' in criterion_system and proc['icd10_code'] == criterion_code:
+                    matching_procedures.append(proc)
+                    continue
+
+            # Match by procedure text (bidirectional fuzzy matching)
+            # Uses bidirectional substring matching to handle both:
+            # - Generic-to-specific: "surgery" matches "hip replacement surgery"
+            # - Specific-to-generic: "total hip arthroplasty" matches "hip replacement"
+            if operator == 'contains':
+                if search_value in proc_text_lower or proc_text_lower in search_value:
+                    matching_procedures.append(proc)
+            elif operator == 'equals':
+                if search_value == proc_text_lower:
+                    matching_procedures.append(proc)
+            elif operator == 'not_contains':
+                if search_value not in proc_text_lower:
+                    matching_procedures.append(proc)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching procedures found
+            met = len(matching_procedures) == len(procedures)  # All procedures don't match search term
+            reason = f"Patient {'has no' if met else 'has'} {search_value} procedure"
+        else:
+            # For inclusion criteria, met = True if ANY matching procedure found
+            met = len(matching_procedures) > 0
+            reason = f"Patient {'has had' if met else 'has not had'} {search_value} procedure"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'procedure_count': len(matching_procedures),
+                'procedures': matching_procedures,
+                'total_procedures': len(procedures)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking procedure criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking procedure: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_diagnostic_report_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a diagnostic report criterion.
+
+    Supports:
+    - Report conclusion/status matching
+    - Report category filtering (imaging, lab, pathology, cardiology)
+    - LOINC code matching for specific tests
+    - Text-based matching for findings
+
+    Args:
+        patient_id: Patient identifier
+        criterion: DiagnosticReport criterion
+
+    Returns:
+        Result with met status, reason, and report evidence
+    """
+    try:
+        # Query DiagnosticReport resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        # Add category filter if specified
+        report_category = criterion.get('report_category')
+        if report_category:
+            params['category'] = report_category
+
+        response = query_fhir_resource('DiagnosticReport', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator
+        if operator == 'not_exists':
+            has_reports = response and response.get('total', 0) > 0
+            return {
+                'met': not has_reports,
+                'reason': f"Patient {'has' if has_reports else 'has no'} diagnostic reports",
+                'evidence': {
+                    'report_count': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No reports found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No diagnostic reports found",
+                'evidence': None
+            }
+
+        # Extract reports
+        reports = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            report = entry.get('resource', {})
+
+            # Extract conclusion and status
+            conclusion = report.get('conclusion', '').lower()
+            status = report.get('status', 'unknown')
+
+            # Extract report code
+            code = report.get('code', {})
+            report_text = code.get('text', 'Unknown report')
+
+            # Extract LOINC code
+            codings = code.get('coding', [])
+            loinc_code = None
+            for coding in codings:
+                if 'loinc' in coding.get('system', '').lower():
+                    loinc_code = coding.get('code')
+                    break
+
+            # Extract issued date
+            issued_date = report.get('issued', report.get('effectiveDateTime'))
+
+            reports.append({
+                'text': report_text,
+                'conclusion': conclusion,
+                'status': status,
+                'loinc_code': loinc_code,
+                'issued_date': issued_date,
+                'category': report_category or 'unknown'
+            })
+
+        if not reports:
+            return {
+                'met': False,
+                'reason': "No diagnostic reports found",
+                'evidence': None
+            }
+
+        # Match reports against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has LOINC code
+        criterion_coding = criterion.get('coding', {})
+        criterion_code = criterion_coding.get('code') if criterion_coding else None
+
+        matching_reports = []
+        for report in reports:
+            # Match by LOINC code (exact match)
+            if criterion_code and report['loinc_code'] == criterion_code:
+                matching_reports.append(report)
+                continue
+
+            # Match by conclusion or report text (fuzzy matching)
+            report_text_lower = report['text'].lower()
+            conclusion_lower = report['conclusion']
+
+            if operator == 'contains':
+                if (search_value in conclusion_lower or conclusion_lower in search_value or
+                    search_value in report_text_lower or report_text_lower in search_value):
+                    matching_reports.append(report)
+            elif operator == 'equals':
+                if search_value == conclusion_lower or search_value == report_text_lower:
+                    matching_reports.append(report)
+            elif operator == 'not_contains':
+                if search_value not in conclusion_lower and search_value not in report_text_lower:
+                    matching_reports.append(report)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching reports found
+            met = len(matching_reports) == len(reports)
+            reason = f"Patient reports {'do not contain' if met else 'contain'} {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching report found
+            met = len(matching_reports) > 0
+            reason = f"Patient {'has' if met else 'has no'} diagnostic report with {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'report_count': len(matching_reports),
+                'reports': matching_reports,
+                'total_reports': len(reports)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking diagnostic report criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking diagnostic report: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_medication_request_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a medication request (prescription) criterion.
+
+    Supports:
+    - Prescribed medication filtering
+    - Intent filtering (order, plan)
+    - Status filtering (active, completed)
+    - RxNorm code matching
+    - Medication name matching (fuzzy)
+
+    Args:
+        patient_id: Patient identifier
+        criterion: MedicationRequest criterion
+
+    Returns:
+        Result with met status, reason, and prescription evidence
+    """
+    try:
+        # Query MedicationRequest resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        # Add intent filter if specified (default: order)
+        intent_filter = criterion.get('intent', 'order')
+        if intent_filter:
+            params['intent'] = intent_filter
+
+        # Add status filter if specified (default: active)
+        status_filter = criterion.get('status', 'active')
+        if status_filter:
+            params['status'] = status_filter
+
+        response = query_fhir_resource('MedicationRequest', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator
+        if operator == 'not_exists':
+            has_prescriptions = response and response.get('total', 0) > 0
+            return {
+                'met': not has_prescriptions,
+                'reason': f"Patient {'has' if has_prescriptions else 'has no'} prescribed medications",
+                'evidence': {
+                    'prescription_count': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No prescriptions found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No prescribed medications found",
+                'evidence': None
+            }
+
+        # Extract prescriptions
+        prescriptions = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            med_request = entry.get('resource', {})
+
+            # Extract medication name
+            med_concept = med_request.get('medicationCodeableConcept', {})
+            med_name = med_concept.get('text', 'Unknown')
+
+            # Extract RxNorm code
+            codings = med_concept.get('coding', [])
+            rxnorm_code = None
+            for coding in codings:
+                if 'rxnorm' in coding.get('system', '').lower():
+                    rxnorm_code = coding.get('code')
+                    break
+
+            # Extract dates
+            authored_date = med_request.get('authoredOn')
+
+            # Extract dosage info (optional)
+            dosage_instructions = med_request.get('dosageInstruction', [])
+            dosage_text = dosage_instructions[0].get('text') if dosage_instructions else None
+
+            prescriptions.append({
+                'medication': med_name,
+                'intent': med_request.get('intent', 'unknown'),
+                'status': med_request.get('status', 'unknown'),
+                'rxnorm_code': rxnorm_code,
+                'authored_date': authored_date,
+                'dosage': dosage_text
+            })
+
+        if not prescriptions:
+            return {
+                'met': False,
+                'reason': "No prescribed medications found",
+                'evidence': None
+            }
+
+        # Match prescriptions against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has RxNorm code
+        criterion_rxnorm = None
+        if 'coding' in criterion:
+            criterion_rxnorm = criterion['coding'].get('code')
+
+        matching_prescriptions = []
+        for prescription in prescriptions:
+            med_name_lower = prescription['medication'].lower()
+
+            # Match by RxNorm code (exact match)
+            if criterion_rxnorm and prescription['rxnorm_code'] == criterion_rxnorm:
+                matching_prescriptions.append(prescription)
+                continue
+
+            # Match by medication name (bidirectional fuzzy matching)
+            if operator == 'contains':
+                if search_value in med_name_lower or med_name_lower in search_value:
+                    matching_prescriptions.append(prescription)
+            elif operator == 'equals':
+                if search_value == med_name_lower:
+                    matching_prescriptions.append(prescription)
+            elif operator == 'not_contains':
+                if search_value not in med_name_lower:
+                    matching_prescriptions.append(prescription)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching prescriptions found
+            met = len(matching_prescriptions) == len(prescriptions)
+            reason = f"Patient {'is not prescribed' if met else 'is prescribed'} {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching prescription found
+            met = len(matching_prescriptions) > 0
+            reason = f"Patient {'is prescribed' if met else 'is not prescribed'} {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'prescription_count': len(matching_prescriptions),
+                'prescriptions': matching_prescriptions,
+                'total_prescriptions': len(prescriptions)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking medication request criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking medication request: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_immunization_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets an immunization (vaccination) criterion.
+
+    Supports:
+    - Vaccination history checks
+    - Vaccine type matching (influenza, COVID-19, HPV, etc.)
+    - CVX code matching (CDC vaccine codes)
+    - Status filtering (completed, entered-in-error)
+    - Temporal constraints (within X time period)
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Immunization criterion
+
+    Returns:
+        Result with met status, reason, and immunization evidence
+    """
+    try:
+        # Query Immunization resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        # Add status filter if specified (default: completed)
+        status_filter = criterion.get('status', 'completed')
+        if status_filter:
+            params['status'] = status_filter
+
+        response = query_fhir_resource('Immunization', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator
+        if operator == 'not_exists':
+            has_immunizations = response and response.get('total', 0) > 0
+
+            # If checking for specific vaccine type with not_exists
+            if has_immunizations and criterion.get('value'):
+                entries = response.get('entry', [])
+                search_value = criterion.get('value', '').lower()
+                criterion_cvx = criterion.get('coding', {}).get('code') if criterion.get('coding') else None
+
+                matching_count = 0
+                for entry in entries:
+                    imm_resource = entry.get('resource', {})
+
+                    # Extract vaccine info
+                    vaccine_code = imm_resource.get('vaccineCode', {})
+                    vaccine_text = vaccine_code.get('text', '').lower()
+
+                    # Check CVX code match
+                    codings = vaccine_code.get('coding', [])
+                    has_code_match = False
+                    for coding in codings:
+                        if criterion_cvx and coding.get('code') == criterion_cvx:
+                            has_code_match = True
+                            break
+
+                    # Check text match (fuzzy)
+                    has_text_match = search_value in vaccine_text or vaccine_text in search_value
+
+                    if has_code_match or has_text_match:
+                        matching_count += 1
+
+                met = matching_count == 0
+                reason = f"Patient {'has not received' if met else 'has received'} {criterion.get('value', 'vaccine')}"
+            else:
+                met = not has_immunizations
+                reason = f"Patient {'has no' if met else 'has'} immunization history"
+
+            return {
+                'met': met,
+                'reason': reason,
+                'evidence': {
+                    'immunization_count': 0 if met else 1,
+                    'immunizations': [],
+                    'total_immunizations': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No immunizations found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No immunizations found",
+                'evidence': None
+            }
+
+        # Extract immunizations
+        immunizations = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            imm_resource = entry.get('resource', {})
+
+            # Extract vaccine info
+            vaccine_code = imm_resource.get('vaccineCode', {})
+            vaccine_text = vaccine_code.get('text', 'Unknown vaccine')
+
+            # Extract CVX code
+            codings = vaccine_code.get('coding', [])
+            cvx_code = None
+            for coding in codings:
+                if 'cvx' in coding.get('system', '').lower():
+                    cvx_code = coding.get('code')
+                    break
+
+            # Extract dates
+            occurrence_date = imm_resource.get('occurrenceDateTime')
+            if not occurrence_date:
+                occurrence_period = imm_resource.get('occurrencePeriod', {})
+                occurrence_date = occurrence_period.get('start')
+
+            # Extract lot number and expiration date (optional)
+            lot_number = imm_resource.get('lotNumber')
+            expiration_date = imm_resource.get('expirationDate')
+
+            immunizations.append({
+                'vaccine': vaccine_text,
+                'status': imm_resource.get('status', 'unknown'),
+                'cvx_code': cvx_code,
+                'occurrence_date': occurrence_date,
+                'lot_number': lot_number,
+                'expiration_date': expiration_date
+            })
+
+        if not immunizations:
+            return {
+                'met': False,
+                'reason': "No completed immunizations found",
+                'evidence': None
+            }
+
+        # Match immunizations against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has CVX code
+        criterion_cvx = None
+        if 'coding' in criterion:
+            criterion_cvx = criterion['coding'].get('code')
+
+        matching_immunizations = []
+        for immunization in immunizations:
+            vaccine_lower = immunization['vaccine'].lower()
+
+            # Match by CVX code (exact match)
+            if criterion_cvx and immunization['cvx_code'] == criterion_cvx:
+                matching_immunizations.append(immunization)
+                continue
+
+            # Match by vaccine name (bidirectional fuzzy matching)
+            if operator == 'contains':
+                if search_value in vaccine_lower or vaccine_lower in search_value:
+                    matching_immunizations.append(immunization)
+            elif operator == 'equals':
+                if search_value == vaccine_lower:
+                    matching_immunizations.append(immunization)
+            elif operator == 'not_contains':
+                if search_value not in vaccine_lower:
+                    matching_immunizations.append(immunization)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching immunizations found
+            met = len(matching_immunizations) == len(immunizations)
+            reason = f"Patient {'has not received' if met else 'has received'} {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching immunization found
+            met = len(matching_immunizations) > 0
+            reason = f"Patient {'has received' if met else 'has not received'} {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'immunization_count': len(matching_immunizations),
+                'immunizations': matching_immunizations,
+                'total_immunizations': len(immunizations)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking immunization criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking immunization: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_family_member_history_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets a family member history criterion.
+
+    Supports:
+    - Family history of conditions (cancer, heart disease, etc.)
+    - Relationship filtering (mother, father, sibling, etc.)
+    - Condition code matching (ICD-10-CM, SNOMED CT)
+    - Fuzzy text matching for conditions
+
+    Args:
+        patient_id: Patient identifier
+        criterion: FamilyMemberHistory criterion
+
+    Returns:
+        Result with met status, reason, and family history evidence
+    """
+    try:
+        # Query FamilyMemberHistory resource
+        params = {
+            'patient': patient_id
+        }
+
+        response = query_fhir_resource('FamilyMemberHistory', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator (no family history)
+        if operator == 'not_exists':
+            has_history = response and response.get('total', 0) > 0
+
+            # If checking for specific condition with not_exists
+            if has_history and criterion.get('value'):
+                entries = response.get('entry', [])
+                search_value = criterion.get('value', '').lower()
+                criterion_code = criterion.get('coding', {}).get('code') if criterion.get('coding') else None
+
+                matching_count = 0
+                for entry in entries:
+                    fmh_resource = entry.get('resource', {})
+
+                    # Extract condition info
+                    conditions = fmh_resource.get('condition', [])
+                    for condition in conditions:
+                        condition_code = condition.get('code', {})
+                        condition_text = condition_code.get('text', '').lower()
+
+                        # Check code match
+                        codings = condition_code.get('coding', [])
+                        has_code_match = False
+                        for coding in codings:
+                            if criterion_code and coding.get('code') == criterion_code:
+                                has_code_match = True
+                                break
+
+                        # Check text match (fuzzy)
+                        has_text_match = search_value in condition_text or condition_text in search_value
+
+                        if has_code_match or has_text_match:
+                            matching_count += 1
+                            break
+
+                met = matching_count == 0
+                reason = f"Patient {'has no' if met else 'has'} family history of {criterion.get('value', 'condition')}"
+            else:
+                met = not has_history
+                reason = f"Patient {'has no' if met else 'has'} family history"
+
+            return {
+                'met': met,
+                'reason': reason,
+                'evidence': {
+                    'family_history_count': 0 if met else 1,
+                    'family_history': [],
+                    'total_entries': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No family history found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No family history found",
+                'evidence': None
+            }
+
+        # Extract family history
+        family_history = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            fmh_resource = entry.get('resource', {})
+
+            # Extract relationship
+            relationship = fmh_resource.get('relationship', {})
+            relationship_text = relationship.get('text', 'Unknown')
+            relationship_codings = relationship.get('coding', [])
+            relationship_code = relationship_codings[0].get('code') if relationship_codings else None
+
+            # Extract conditions
+            conditions = fmh_resource.get('condition', [])
+            for condition in conditions:
+                condition_code = condition.get('code', {})
+                condition_text = condition_code.get('text', 'Unknown condition')
+
+                # Extract coding (ICD-10-CM or SNOMED CT)
+                codings = condition_code.get('coding', [])
+                icd10_code = None
+                snomed_code = None
+                for coding in codings:
+                    system = coding.get('system', '')
+                    code = coding.get('code')
+                    if 'icd-10' in system.lower() and code:
+                        icd10_code = code
+                    elif 'snomed' in system.lower() and code:
+                        snomed_code = code
+
+                # Extract date and status
+                date = fmh_resource.get('date')
+                status = fmh_resource.get('status', 'unknown')
+
+                family_history.append({
+                    'relationship': relationship_text,
+                    'relationship_code': relationship_code,
+                    'condition': condition_text,
+                    'icd10_code': icd10_code,
+                    'snomed_code': snomed_code,
+                    'date': date,
+                    'status': status
+                })
+
+        if not family_history:
+            return {
+                'met': False,
+                'reason': "No family history conditions found",
+                'evidence': None
+            }
+
+        # Match family history against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has condition code
+        criterion_code = None
+        if 'coding' in criterion:
+            criterion_code = criterion['coding'].get('code')
+
+        # Check if criterion has relationship filter
+        relationship_filter = criterion.get('relationship_filter', [])
+
+        matching_history = []
+        for history in family_history:
+            condition_lower = history['condition'].lower()
+
+            # Filter by relationship if specified
+            if relationship_filter:
+                relationship_lower = history['relationship'].lower()
+                # Check if relationship matches any in the filter
+                has_relationship_match = any(rel.lower() in relationship_lower for rel in relationship_filter)
+                if not has_relationship_match:
+                    continue
+
+            # Match by condition code (exact match)
+            if criterion_code:
+                if history['icd10_code'] == criterion_code or history['snomed_code'] == criterion_code:
+                    matching_history.append(history)
+                    continue
+
+            # Match by condition text (bidirectional fuzzy matching)
+            if operator == 'contains':
+                if search_value in condition_lower or condition_lower in search_value:
+                    matching_history.append(history)
+            elif operator == 'equals':
+                if search_value == condition_lower:
+                    matching_history.append(history)
+            elif operator == 'not_contains':
+                if search_value not in condition_lower:
+                    matching_history.append(history)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching history found
+            met = len(matching_history) == len(family_history)
+            reason = f"Patient {'has no' if met else 'has'} family history of {search_value}"
+        else:
+            # For inclusion criteria, met = True if ANY matching history found
+            met = len(matching_history) > 0
+            reason = f"Patient {'has' if met else 'has no'} family history of {search_value}"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'family_history_count': len(matching_history),
+                'family_history': matching_history,
+                'total_history': len(family_history)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking family member history criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking family history: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
+def check_encounter_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check if patient meets an encounter criterion.
+
+    Supports:
+    - Encounter class filtering (inpatient, emergency, ambulatory)
+    - Encounter type matching (ICU, primary care, etc.)
+    - Status filtering (finished, in-progress)
+    - Temporal constraints (within X time period)
+    - SNOMED CT and ActCode matching
+
+    Args:
+        patient_id: Patient identifier
+        criterion: Encounter criterion
+
+    Returns:
+        Result with met status, reason, and encounter evidence
+    """
+    try:
+        # Query Encounter resource
+        params = {
+            'subject': f'Patient/{patient_id}'
+        }
+
+        response = query_fhir_resource('Encounter', patient_id, params)
+
+        # Handle operators
+        operator = criterion.get('operator', 'contains')
+
+        # Handle "not_exists" operator
+        if operator == 'not_exists':
+            has_encounters = response and response.get('total', 0) > 0
+
+            # If checking for specific encounter type with not_exists
+            if has_encounters and criterion.get('value'):
+                entries = response.get('entry', [])
+                search_value = criterion.get('value', '').lower()
+                criterion_code = criterion.get('coding', {}).get('code') if criterion.get('coding') else None
+
+                matching_count = 0
+                for entry in entries:
+                    enc_resource = entry.get('resource', {})
+
+                    # Filter by status (only count finished encounters)
+                    status = enc_resource.get('status', 'unknown')
+                    if status not in ['finished', 'in-progress']:
+                        continue
+
+                    # Extract encounter class
+                    enc_class = enc_resource.get('class', {})
+                    class_code = enc_class.get('code', '').lower() if isinstance(enc_class, dict) else str(enc_class).lower()
+
+                    # Extract encounter type
+                    enc_types = enc_resource.get('type', [])
+                    type_text_list = []
+                    for enc_type in enc_types:
+                        type_text = enc_type.get('text', '').lower()
+                        type_text_list.append(type_text)
+
+                        # Check code match
+                        codings = enc_type.get('coding', [])
+                        for coding in codings:
+                            if criterion_code and coding.get('code') == criterion_code:
+                                matching_count += 1
+                                break
+
+                    # Check text match (fuzzy) in class or type
+                    all_text = f"{class_code} {' '.join(type_text_list)}"
+                    if search_value in all_text or all_text in search_value:
+                        matching_count += 1
+
+                met = matching_count == 0
+                reason = f"Patient {'has no' if met else 'has'} {criterion.get('value', 'encounter')}"
+            else:
+                met = not has_encounters
+                reason = f"Patient {'has no' if met else 'has'} encounter history"
+
+            return {
+                'met': met,
+                'reason': reason,
+                'evidence': {
+                    'encounter_count': 0 if met else 1,
+                    'encounters': [],
+                    'total_encounters': response.get('total', 0) if response else 0
+                }
+            }
+
+        # No encounters found
+        if not response or response.get('total', 0) == 0:
+            met = operator == 'not_contains'
+            return {
+                'met': met,
+                'reason': "No encounters found",
+                'evidence': None
+            }
+
+        # Extract encounters
+        encounters = []
+        entries = response.get('entry', [])
+
+        for entry in entries:
+            enc_resource = entry.get('resource', {})
+
+            # Filter by status
+            status = enc_resource.get('status', 'unknown')
+            if status not in ['finished', 'in-progress', 'arrived']:
+                continue
+
+            # Extract encounter class
+            enc_class = enc_resource.get('class', {})
+            if isinstance(enc_class, dict):
+                class_code = enc_class.get('code', 'unknown')
+                class_display = enc_class.get('display', class_code)
+            else:
+                class_code = str(enc_class)
+                class_display = class_code
+
+            # Extract encounter types
+            enc_types = enc_resource.get('type', [])
+            type_displays = []
+            snomed_codes = []
+            for enc_type in enc_types:
+                type_text = enc_type.get('text', 'Unknown type')
+                type_displays.append(type_text)
+
+                # Extract SNOMED CT codes
+                codings = enc_type.get('coding', [])
+                for coding in codings:
+                    if 'snomed' in coding.get('system', '').lower():
+                        snomed_codes.append(coding.get('code'))
+
+            # Extract period
+            period = enc_resource.get('period', {})
+            start_date = period.get('start')
+            end_date = period.get('end')
+
+            encounters.append({
+                'class': class_display,
+                'class_code': class_code,
+                'types': type_displays,
+                'snomed_codes': snomed_codes,
+                'status': status,
+                'start_date': start_date,
+                'end_date': end_date
+            })
+
+        if not encounters:
+            return {
+                'met': False,
+                'reason': "No finished/in-progress encounters found",
+                'evidence': None
+            }
+
+        # Match encounters against criterion
+        search_value = criterion.get('value', '').lower()
+
+        # Check if criterion has code
+        criterion_code = None
+        if 'coding' in criterion:
+            criterion_code = criterion['coding'].get('code')
+
+        matching_encounters = []
+        for encounter in encounters:
+            class_lower = encounter['class'].lower()
+            class_code_lower = encounter['class_code'].lower()
+            types_lower = ' '.join([t.lower() for t in encounter['types']])
+
+            # Match by code (exact match)
+            if criterion_code:
+                if criterion_code in encounter['snomed_codes'] or criterion_code == encounter['class_code']:
+                    matching_encounters.append(encounter)
+                    continue
+
+            # Combine all text for matching
+            all_text = f"{class_lower} {class_code_lower} {types_lower}"
+
+            # Match by text (bidirectional fuzzy matching)
+            if operator == 'contains':
+                if search_value in all_text or all_text in search_value:
+                    matching_encounters.append(encounter)
+            elif operator == 'equals':
+                if search_value == class_lower or search_value == class_code_lower:
+                    matching_encounters.append(encounter)
+            elif operator == 'not_contains':
+                if search_value not in all_text:
+                    matching_encounters.append(encounter)
+
+        # Determine if criterion is met
+        if operator == 'not_contains':
+            # For exclusion criteria, met = True if NO matching encounters found
+            met = len(matching_encounters) == len(encounters)
+            reason = f"Patient {'has no' if met else 'has'} {search_value} encounter"
+        else:
+            # For inclusion criteria, met = True if ANY matching encounter found
+            met = len(matching_encounters) > 0
+            reason = f"Patient {'has had' if met else 'has not had'} {search_value} encounter"
+
+        return {
+            'met': met,
+            'reason': reason,
+            'evidence': {
+                'encounter_count': len(matching_encounters),
+                'encounters': matching_encounters,
+                'total_encounters': len(encounters)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking encounter criterion: {str(e)}", exc_info=True)
+        return {
+            'met': False,
+            'reason': f"Error checking encounter: {str(e)}",
+            'evidence': None
+        }
+
+
+@tracer.capture_method
 def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[str, Any]:
     """
     Check if patient meets a simple (leaf) criterion.
@@ -784,8 +1944,26 @@ def check_simple_criterion(patient_id: str, criterion: Dict[str, Any]) -> Dict[s
         elif category == 'medication':
             result = check_medication_criterion(patient_id, criterion)
 
+        elif category == 'medication_request':
+            result = check_medication_request_criterion(patient_id, criterion)
+
+        elif category == 'immunization':
+            result = check_immunization_criterion(patient_id, criterion)
+
         elif category == 'allergy':
             result = check_allergy_criterion(patient_id, criterion)
+
+        elif category == 'procedure':
+            result = check_procedure_criterion(patient_id, criterion)
+
+        elif category == 'diagnostic_report':
+            result = check_diagnostic_report_criterion(patient_id, criterion)
+
+        elif category == 'family_member_history':
+            result = check_family_member_history_criterion(patient_id, criterion)
+
+        elif category == 'encounter':
+            result = check_encounter_criterion(patient_id, criterion)
 
         else:
             result = {

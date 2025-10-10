@@ -1,0 +1,701 @@
+{
+  "info": {
+    "name": "MedicationRequest Resource Tests",
+    "description": "Comprehensive tests for MedicationRequest FHIR resource support",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. MEDICATION REQUEST PARSING TESTS",
+      "item": [
+        {
+          "name": "1.1 Parse: Prescribed anticoagulant therapy required",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-parse-1\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Prescribed anticoagulant therapy required\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Parse: No concurrent chemotherapy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-parse-2\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- No concurrent use of chemotherapy\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Parse: Stable dose of metformin for 3 months",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-parse-3\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Stable dose of metformin for at least 3 months\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Parse: Beta-blocker therapy prescribed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-parse-4\",\n  \"criteria_text\": \"Inclusion Criteria:\\n- Prescribed beta-blocker therapy\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.5 Parse: No immunosuppressive medications",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-parse-5\",\n  \"criteria_text\": \"Exclusion Criteria:\\n- No immunosuppressive medications\"\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "parse-criteria"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. MEDICATION REQUEST EVALUATION TESTS",
+      "item": [
+        {
+          "name": "2.1 Evaluate: Warfarin patient - prescribed anticoagulant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-eval-1\",\n  \"patient_id\": \"medrq-patient-warfarin-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"Prescribed anticoagulant therapy\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"anticoagulant\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"11289\",\n        \"display\": \"Warfarin\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Evaluate: Chemotherapy patient - exclusion criterion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-eval-2\",\n  \"patient_id\": \"medrq-patient-chemo-001\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"No concurrent chemotherapy\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"not_contains\",\n      \"value\": \"chemotherapy\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"4492\",\n        \"display\": \"Cisplatin\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 Evaluate: Metformin patient - diabetes medication",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-eval-3\",\n  \"patient_id\": \"medrq-patient-metformin-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"Prescribed oral diabetes medication\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"metformin\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"6809\",\n        \"display\": \"Metformin\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 Evaluate: Beta-blocker patient - cardiac therapy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-eval-4\",\n  \"patient_id\": \"medrq-patient-betablocker-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"Prescribed beta-blocker therapy\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"beta blocker\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"866511\",\n        \"display\": \"Metoprolol\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 Evaluate: Immunosuppressive patient - should fail exclusion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-eval-5\",\n  \"patient_id\": \"medrq-patient-immunosuppressive-001\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"No immunosuppressive medications\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"not_contains\",\n      \"value\": \"immunosuppressive\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.6 Evaluate: Statin patient - lipid therapy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-eval-6\",\n  \"patient_id\": \"medrq-patient-statin-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"Statin therapy\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"statin\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"83367\",\n        \"display\": \"Atorvastatin\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.7 Evaluate: Multiple medications patient - ACE inhibitor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-eval-7\",\n  \"patient_id\": \"medrq-patient-multiple-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"Prescribed ACE inhibitor\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"lisinopril\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"29046\",\n        \"display\": \"Lisinopril\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.8 Evaluate: No medications patient - should not match",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-eval-8\",\n  \"patient_id\": \"medrq-patient-no-meds-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"Any medication\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"medication\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. EDGE CASE TESTS",
+      "item": [
+        {
+          "name": "3.1 not_exists: No medications (control patient)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-edge-1\",\n  \"patient_id\": \"medrq-patient-no-meds-001\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"No prescribed medications\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"not_exists\",\n      \"value\": \"\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 not_exists: No antibiotics (patient without antibiotics)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-edge-2\",\n  \"patient_id\": \"medrq-patient-warfarin-001\",\n  \"criteria\": [\n    {\n      \"type\": \"exclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"No prescription for antibiotics\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"not_contains\",\n      \"value\": \"antibiotic\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Fuzzy match: 'warfarin' matches 'anticoagulant'",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-edge-3\",\n  \"patient_id\": \"medrq-patient-warfarin-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"Warfarin prescription\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"warfarin\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 Complex: MedicationRequest AND Demographics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-edge-4\",\n  \"patient_id\": \"medrq-patient-statin-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"logic_operator\": \"AND\",\n      \"description\": \"Statin therapy and age >= 50\",\n      \"criteria\": [\n        {\n          \"category\": \"medication_request\",\n          \"description\": \"Prescribed statin\",\n          \"attribute\": \"medication_name\",\n          \"operator\": \"contains\",\n          \"value\": \"statin\",\n          \"fhir_resource\": \"MedicationRequest\",\n          \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n          \"intent\": \"order\",\n          \"status\": \"active\"\n        },\n        {\n          \"category\": \"demographics\",\n          \"description\": \"Age >= 50 years\",\n          \"attribute\": \"age\",\n          \"operator\": \"greater_than\",\n          \"value\": 50,\n          \"unit\": \"years\",\n          \"fhir_resource\": \"Patient\",\n          \"fhir_path\": \"Patient.birthDate\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. RXNORM CODE MATCHING TESTS",
+      "item": [
+        {
+          "name": "4.1 Match by RxNorm code: Warfarin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-code-1\",\n  \"patient_id\": \"medrq-patient-warfarin-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"RxNorm code match - Warfarin\",\n      \"attribute\": \"medication_code\",\n      \"operator\": \"contains\",\n      \"value\": \"warfarin\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"11289\",\n        \"display\": \"Warfarin\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 Match by RxNorm code: Metformin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-code-2\",\n  \"patient_id\": \"medrq-patient-metformin-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"RxNorm code match - Metformin\",\n      \"attribute\": \"medication_code\",\n      \"operator\": \"contains\",\n      \"value\": \"metformin\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"6809\",\n        \"display\": \"Metformin\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 Match by RxNorm code: Cisplatin (chemotherapy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-code-3\",\n  \"patient_id\": \"medrq-patient-chemo-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"RxNorm code match - Cisplatin\",\n      \"attribute\": \"medication_code\",\n      \"operator\": \"contains\",\n      \"value\": \"cisplatin\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\",\n      \"coding\": {\n        \"system\": \"http://www.nlm.nih.gov/research/umls/rxnorm\",\n        \"code\": \"4492\",\n        \"display\": \"Cisplatin\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.4 Match without code (text fallback)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_id\": \"medrq-code-4\",\n  \"patient_id\": \"medrq-patient-multiple-001\",\n  \"criteria\": [\n    {\n      \"type\": \"inclusion\",\n      \"category\": \"medication_request\",\n      \"description\": \"Aspirin (no RxNorm code specified)\",\n      \"attribute\": \"medication_name\",\n      \"operator\": \"contains\",\n      \"value\": \"aspirin\",\n      \"fhir_resource\": \"MedicationRequest\",\n      \"fhir_path\": \"MedicationRequest.medicationCodeableConcept\",\n      \"intent\": \"order\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/evaluate-eligibility",
+              "protocol": "https",
+              "host": [
+                "gt7dlyqj78",
+                "execute-api",
+                "us-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                "prod",
+                "evaluate-eligibility"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
