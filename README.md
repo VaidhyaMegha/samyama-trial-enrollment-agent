@@ -93,9 +93,7 @@ aws-trial-enrollment-agent/
 │   └── end_to_end_demo.py           # Complete workflow demonstration
 ├── tests/                            # Test suites (pytest)
 │   ├── test_criteria_parser.py      # Criteria parser tests
-│   ├── test_fhir_search.py          # FHIR search tests
-│   ├── test_textract_processor.py   # Textract processor tests
-│   └── test_section_classifier.py   # Section classifier tests
+│   └── test_fhir_search.py          # FHIR search tests
 ├── protocol-docs/                    # Sample protocol PDFs for testing
 ├── tmp/                              # Temporary output files (gitignored)
 ├── requirements.txt                  # Python dependencies

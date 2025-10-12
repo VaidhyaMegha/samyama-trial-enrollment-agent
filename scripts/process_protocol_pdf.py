@@ -26,12 +26,29 @@ from pathlib import Path
 from datetime import datetime
 from botocore.config import Config
 
+# Load environment variables from .env file if it exists
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv not installed, skip
+    pass
+
 # AWS Configuration
-AWS_REGION = 'us-east-1'
-AWS_ACCOUNT_ID = '519510601754'
-S3_BUCKET = f'trial-enrollment-protocols-{AWS_ACCOUNT_ID}'
-TEXTRACT_FUNCTION = 'TrialEnrollment-TextractProcessor'
-CLASSIFIER_FUNCTION = 'TrialEnrollment-SectionClassifier'
+# Read from environment variables with fallback to dynamic retrieval
+AWS_REGION = os.environ.get('AWS_REGION', 'us-east-1')
+
+# Get AWS Account ID dynamically if not set in environment
+if 'AWS_ACCOUNT_ID' in os.environ:
+    AWS_ACCOUNT_ID = os.environ['AWS_ACCOUNT_ID']
+else:
+    # Dynamically retrieve from AWS STS
+    sts_client = boto3.client('sts', region_name=AWS_REGION)
+    AWS_ACCOUNT_ID = sts_client.get_caller_identity()['Account']
+
+S3_BUCKET = os.environ.get('S3_BUCKET', f'trial-enrollment-protocols-{AWS_ACCOUNT_ID}')
+TEXTRACT_FUNCTION = os.environ.get('TEXTRACT_FUNCTION', 'TrialEnrollment-TextractProcessor')
+CLASSIFIER_FUNCTION = os.environ.get('CLASSIFIER_FUNCTION', 'TrialEnrollment-SectionClassifier')
 
 # Initialize AWS clients with extended timeouts for large PDFs
 config = Config(

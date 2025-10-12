@@ -75,10 +75,16 @@ class TrialEnrollmentAgentStack(Stack):
         # ========================================
 
         # Bucket for storing protocol PDFs
-        # Reference existing bucket
-        protocol_bucket = s3.Bucket.from_bucket_name(
+        # Create new bucket (allows event notifications)
+        protocol_bucket = s3.Bucket(
             self, "ProtocolDocumentsBucket",
-            bucket_name=f"trial-enrollment-protocols-{self.account}"
+            bucket_name=f"trial-enrollment-protocols-{self.account}",
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            removal_policy=RemovalPolicy.DESTROY,  # For dev/hackathon only
+            auto_delete_objects=True,  # Clean up on stack deletion
+            versioning=False,
+            enforce_ssl=True
         )
 
         # ========================================
