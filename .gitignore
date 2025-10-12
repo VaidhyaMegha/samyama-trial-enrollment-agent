@@ -103,7 +103,7 @@ src/lambda/*/s3transfer*/
 # Test outputs
 response.json
 test-*.json
-
+tests/*.json
 # Documentation builds
 docs/_build/
 site/

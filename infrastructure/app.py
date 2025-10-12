@@ -21,6 +21,8 @@ from aws_cdk import (
     aws_dynamodb as dynamodb,
     aws_iam as iam,
     aws_logs as logs,
+    aws_s3 as s3,
+    aws_s3_notifications as s3n,
     CfnOutput
 )
 from constructs import Construct
@@ -69,6 +71,23 @@ class TrialEnrollmentAgentStack(Stack):
         )
 
         # ========================================
+        # S3 Bucket for Protocol Documents
+        # ========================================
+
+        # Bucket for storing protocol PDFs
+        # Create new bucket (allows event notifications)
+        protocol_bucket = s3.Bucket(
+            self, "ProtocolDocumentsBucket",
+            bucket_name=f"trial-enrollment-protocols-{self.account}",
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            removal_policy=RemovalPolicy.DESTROY,  # For dev/hackathon only
+            auto_delete_objects=True,  # Clean up on stack deletion
+            versioning=False,
+            enforce_ssl=True
+        )
+
+        # ========================================
         # IAM Policies
         # ========================================
 
@@ -83,6 +102,30 @@ class TrialEnrollmentAgentStack(Stack):
                 f"arn:aws:bedrock:{self.region}::foundation-model/amazon.titan-text-express-v1",
                 f"arn:aws:bedrock:{self.region}::foundation-model/amazon.titan-*"
             ]
+        )
+
+        # Textract access policy
+        textract_policy = iam.PolicyStatement(
+            effect=iam.Effect.ALLOW,
+            actions=[
+                "textract:StartDocumentAnalysis",
+                "textract:GetDocumentAnalysis",
+                "textract:StartDocumentTextDetection",
+                "textract:GetDocumentTextDetection"
+            ],
+            resources=["*"]
+        )
+
+        # Comprehend Medical access policy
+        comprehend_medical_policy = iam.PolicyStatement(
+            effect=iam.Effect.ALLOW,
+            actions=[
+                "comprehendmedical:DetectEntitiesV2",
+                "comprehendmedical:InferICD10CM",
+                "comprehendmedical:InferRxNorm",
+                "comprehendmedical:DetectPHI"
+            ],
+            resources=["*"]
         )
 
         # HealthLake access policy (optional, if using HealthLake)
@@ -142,6 +185,93 @@ class TrialEnrollmentAgentStack(Stack):
         # Grant permissions (uncomment when HealthLake is used)
         # fhir_search_function.add_to_role_policy(healthlake_policy)
 
+        # Protocol Orchestrator Lambda (declare first, used by Textract Processor)
+        protocol_orchestrator_function = lambda_.Function(
+            self, "ProtocolOrchestratorFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=lambda_.Code.from_asset("../src/lambda/protocol_orchestrator"),
+            handler="handler.lambda_handler",
+            function_name="TrialEnrollment-ProtocolOrchestrator",
+            timeout=Duration.minutes(5),  # 5 minutes for full pipeline
+            memory_size=512,
+            environment={
+                "CRITERIA_CACHE_TABLE": criteria_cache_table.table_name,
+                "MAX_RETRIES": "3",
+                "RETRY_DELAY_SECONDS": "2",
+                "POWERTOOLS_SERVICE_NAME": "protocol-orchestrator",
+                "LOG_LEVEL": "INFO"
+                # SECTION_CLASSIFIER_FUNCTION and PARSE_CRITERIA_API_ENDPOINT set later
+            },
+            log_retention=logs.RetentionDays.ONE_WEEK
+        )
+
+        # Textract Processor Lambda
+        textract_processor_function = lambda_.Function(
+            self, "TextractProcessorFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=lambda_.Code.from_asset("../src/lambda/textract_processor"),
+            handler="handler.lambda_handler",
+            function_name="TrialEnrollment-TextractProcessor",
+            timeout=Duration.minutes(10),  # Long timeout for large PDFs
+            memory_size=1024,  # Higher memory for faster processing
+            environment={
+                "TEXTRACT_MAX_WAIT_TIME": "300",  # 5 minutes
+                "TEXTRACT_POLL_INTERVAL": "5",  # 5 seconds
+                "PROTOCOL_ORCHESTRATOR_FUNCTION": protocol_orchestrator_function.function_name,
+                "AUTO_TRIGGER_ORCHESTRATOR": "true",  # Enable automatic pipeline trigger
+                "POWERTOOLS_SERVICE_NAME": "textract-processor",
+                "LOG_LEVEL": "INFO"
+            },
+            log_retention=logs.RetentionDays.ONE_WEEK
+        )
+
+        # Grant permissions
+        textract_processor_function.add_to_role_policy(textract_policy)
+        protocol_bucket.grant_read(textract_processor_function)
+        # Allow Textract Processor to invoke Protocol Orchestrator
+        protocol_orchestrator_function.grant_invoke(textract_processor_function)
+
+        # Add S3 event trigger for automatic processing
+        protocol_bucket.add_event_notification(
+            s3.EventType.OBJECT_CREATED,
+            s3n.LambdaDestination(textract_processor_function),
+            s3.NotificationKeyFilter(suffix='.pdf')
+        )
+
+        # Section Classifier Lambda
+        section_classifier_function = lambda_.Function(
+            self, "SectionClassifierFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=lambda_.Code.from_asset("../src/lambda/section_classifier"),
+            handler="handler.lambda_handler",
+            function_name="TrialEnrollment-SectionClassifier",
+            timeout=Duration.seconds(120),  # 2 minutes
+            memory_size=512,
+            environment={
+                "MIN_CRITERION_LENGTH": "10",
+                "MAX_CRITERION_LENGTH": "500",
+                "USE_COMPREHEND_MEDICAL": "true",
+                "POWERTOOLS_SERVICE_NAME": "section-classifier",
+                "LOG_LEVEL": "INFO"
+            },
+            log_retention=logs.RetentionDays.ONE_WEEK
+        )
+
+        # Grant permissions
+        section_classifier_function.add_to_role_policy(comprehend_medical_policy)
+
+        # Update Protocol Orchestrator environment with Section Classifier function name
+        protocol_orchestrator_function.add_environment(
+            "SECTION_CLASSIFIER_FUNCTION",
+            section_classifier_function.function_name
+        )
+
+        # Grant permissions to Protocol Orchestrator
+        # Allow orchestrator to invoke Section Classifier
+        section_classifier_function.grant_invoke(protocol_orchestrator_function)
+        # Allow orchestrator to read/write DynamoDB
+        criteria_cache_table.grant_read_write_data(protocol_orchestrator_function)
+
         # ========================================
         # API Gateway
         # ========================================
@@ -192,6 +322,12 @@ class TrialEnrollmentAgentStack(Stack):
             method_responses=[{"statusCode": "200"}]
         )
 
+        # Update Protocol Orchestrator with API endpoint
+        protocol_orchestrator_function.add_environment(
+            "PARSE_CRITERIA_API_ENDPOINT",
+            f"{api.url}parse-criteria"
+        )
+
         # ========================================
         # Outputs
         # ========================================
@@ -224,6 +360,30 @@ class TrialEnrollmentAgentStack(Stack):
             self, "EvaluationResultsTableName",
             value=evaluation_results_table.table_name,
             description="DynamoDB table for evaluation results"
+        )
+
+        CfnOutput(
+            self, "ProtocolBucketName",
+            value=protocol_bucket.bucket_name,
+            description="S3 bucket for protocol documents"
+        )
+
+        CfnOutput(
+            self, "TextractProcessorFunctionName",
+            value=textract_processor_function.function_name,
+            description="Textract Processor Lambda function name"
+        )
+
+        CfnOutput(
+            self, "SectionClassifierFunctionName",
+            value=section_classifier_function.function_name,
+            description="Section Classifier Lambda function name"
+        )
+
+        CfnOutput(
+            self, "ProtocolOrchestratorFunctionName",
+            value=protocol_orchestrator_function.function_name,
+            description="Protocol Orchestrator Lambda function name"
         )
 
 

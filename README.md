@@ -71,32 +71,33 @@ Clinical trial enrollment is the #1 bottleneck in medical research. This project
 
 ```
 aws-trial-enrollment-agent/
-├── docs/                          # Documentation
-│   ├── implementation_plan.md     # Detailed implementation strategy
-│   └── AWS Hackathon Idea _ v1.md # Original concept document
-├── todo/                          # Feature-specific task breakdowns
-│   ├── agent_workflow.md          # Agent orchestration tasks
-│   ├── criteria_parser.md         # Parser implementation tasks
-│   └── fhir_search.md            # FHIR integration tasks
-├── src/                          # Source code
-│   ├── lambda/                   # Lambda functions
-│   │   ├── criteria_parser/      # Criteria parsing tool (Amazon Titan)
-│   │   └── fhir_search/          # FHIR query tool (HealthLake)
-│   ├── agent/                    # Agent configuration
-│   └── utils/                    # Shared utilities
-├── infrastructure/               # AWS CDK Infrastructure
-│   └── app.py                   # CDK stack definition
-├── scripts/                      # Utility scripts
-│   ├── load_synthea_data.py     # Generate synthetic FHIR data
-│   ├── upload_to_healthlake.py  # Upload patients to HealthLake
-│   └── end_to_end_demo.py       # Complete workflow demonstration
-├── tests/                        # Test suites (pytest)
-│   ├── test_criteria_parser.py  # Criteria parser tests
-│   └── test_fhir_search.py      # FHIR search tests
-├── data/                         # Sample data
-│   └── synthetic_patients/       # Synthea-generated test data
-├── requirements.txt              # Python dependencies
-└── README.md                     # This file
+├── docs/                             # Documentation
+│   ├── PROTOCOL_PROCESSING_GUIDE.md  # Protocol PDF processing guide
+│   ├── implementation_plan.md        # Detailed implementation strategy
+│   └── deployment_guide.md           # Deployment instructions
+├── src/                              # Source code
+│   ├── lambda/                       # Lambda functions
+│   │   ├── criteria_parser/          # Criteria parsing (Amazon Titan)
+│   │   ├── fhir_search/              # FHIR query tool (HealthLake)
+│   │   ├── textract_processor/       # PDF text extraction (AWS Textract)
+│   │   ├── section_classifier/       # Criteria classification (Comprehend Medical)
+│   │   └── protocol_orchestrator/    # Pipeline orchestration
+│   ├── agent/                        # Agent configuration
+│   └── utils/                        # Shared utilities
+├── infrastructure/                   # AWS CDK Infrastructure
+│   └── app.py                       # CDK stack definition
+├── scripts/                          # Utility scripts
+│   ├── process_protocol_pdf.py      # End-to-end protocol processor
+│   ├── load_synthea_data.py         # Generate synthetic FHIR data
+│   ├── upload_to_healthlake.py      # Upload patients to HealthLake
+│   └── end_to_end_demo.py           # Complete workflow demonstration
+├── tests/                            # Test suites (pytest)
+│   ├── test_criteria_parser.py      # Criteria parser tests
+│   └── test_fhir_search.py          # FHIR search tests
+├── protocol-docs/                    # Sample protocol PDFs for testing
+├── tmp/                              # Temporary output files (gitignored)
+├── requirements.txt                  # Python dependencies
+└── README.md                         # This file
 ```
 
 ## Deployment Status
@@ -123,6 +124,31 @@ aws-trial-enrollment-agent/
   - `patient-001`: Female, 46 years old, eligible for age 18-65 trial
   - `patient-002`: Male, 15 years old, not eligible (under 18)
   - `patient-003`: Male, 55 years old, eligible for age 18-65 trial
+
+## Quick Start: Protocol Processing
+
+**Process any clinical trial protocol PDF in one command:**
+
+```bash
+python scripts/process_protocol_pdf.py /path/to/protocol.pdf
+```
+
+This script will:
+1. Upload the PDF to S3
+2. Extract eligibility criteria using AWS Textract
+3. Classify criteria using Amazon Comprehend Medical
+4. Save structured outputs to `tmp/` directory
+
+**Example:**
+```bash
+# Process a protocol PDF
+python scripts/process_protocol_pdf.py protocol-docs/26_page.pdf
+
+# With custom trial ID
+python scripts/process_protocol_pdf.py ~/Downloads/trial.pdf --trial-id NCT12345678
+```
+
+For detailed information, see [Protocol Processing Guide](docs/PROTOCOL_PROCESSING_GUIDE.md).
 
 ## Getting Started
 
