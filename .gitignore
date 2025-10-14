@@ -99,11 +99,25 @@ src/lambda/*/wrapt*/
 src/lambda/*/*.dist-info/
 src/lambda/*/bin/
 src/lambda/*/s3transfer*/
+# Authorizer lambda dependencies
+src/lambda/authorizer/jose*/
+src/lambda/authorizer/python_jose*/
+src/lambda/authorizer/ecdsa*/
+src/lambda/authorizer/rsa*/
+src/lambda/authorizer/pyasn1*/
+src/lambda/authorizer/pycparser*/
+src/lambda/authorizer/cffi*/
+src/lambda/authorizer/cryptography*/
+src/lambda/authorizer/_cffi_backend*
 
 # Test outputs
 response.json
 test-*.json
 tests/*.json
+
+# Cognito configuration (contains sensitive IDs and test user credentials)
+infrastructure/cognito-config.json
+infrastructure/test-users.json
 # Documentation builds
 docs/_build/
 site/
@@ -111,3 +125,4 @@ docs/PRs/
 docs/next_priority.md
 docs/review_comment
 # postman/
+docs/lovable_chat
