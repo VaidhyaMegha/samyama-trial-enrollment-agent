@@ -31,6 +31,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     - GET /protocols -> list_protocols()
     - POST /protocols/search -> search_protocols()
     - GET /protocols/{id} -> get_protocol()
+    - GET /protocols/{id}/criteria -> get_protocol_criteria()
     """
 
     print(f"Event: {json.dumps(event)}")
@@ -54,7 +55,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         elif path == '/protocols/search' and http_method == 'POST':
             body = json.loads(event.get('body', '{}'))
             return search_protocols(body)
+        elif path.endswith('/criteria') and http_method == 'GET':
+            # GET /protocols/{id}/criteria
+            protocol_id = path_parameters.get('id')
+            return get_protocol_criteria(protocol_id)
         elif path.startswith('/protocols/') and http_method == 'GET':
+            # GET /protocols/{id}
             protocol_id = path_parameters.get('id') or path.split('/')[-1]
             return get_protocol(protocol_id)
         else:
@@ -230,6 +236,64 @@ def get_protocol(protocol_id: str) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error getting protocol: {str(e)}")
         raise
+
+
+def get_protocol_criteria(protocol_id: str) -> Dict[str, Any]:
+    """
+    Get cached parsed criteria for a specific protocol
+    This endpoint is used by the frontend eligibility check flow
+    """
+
+    try:
+        response = criteria_cache_table.get_item(
+            Key={'trial_id': protocol_id}
+        )
+
+        item = response.get('Item')
+        if not item:
+            return {
+                'statusCode': 404,
+                'headers': cors_headers(),
+                'body': json.dumps({
+                    'success': False,
+                    'error': 'Protocol not found or criteria not cached'
+                })
+            }
+
+        # Get parsed criteria from cache
+        parsed_criteria = item.get('parsed_criteria')
+
+        if not parsed_criteria:
+            return {
+                'statusCode': 404,
+                'headers': cors_headers(),
+                'body': json.dumps({
+                    'success': False,
+                    'error': 'Parsed criteria not found for this protocol. Please ensure the protocol has been processed.'
+                })
+            }
+
+        return {
+            'statusCode': 200,
+            'headers': cors_headers(),
+            'body': json.dumps({
+                'success': True,
+                'trial_id': protocol_id,
+                'parsed_criteria': parsed_criteria,
+                'cached_at': item.get('processed_at', datetime.now().isoformat())
+            }, cls=DecimalEncoder)
+        }
+
+    except Exception as e:
+        print(f"Error getting protocol criteria: {str(e)}")
+        return {
+            'statusCode': 500,
+            'headers': cors_headers(),
+            'body': json.dumps({
+                'success': False,
+                'error': f'Error retrieving criteria: {str(e)}'
+            })
+        }
 
 
 def cors_headers() -> Dict[str, str]:

@@ -8,8 +8,18 @@ import os
 import uuid
 from datetime import datetime
 from typing import Dict, List, Any, Optional
+from decimal import Decimal
 import boto3
 from botocore.exceptions import ClientError
+
+
+class DecimalEncoder(json.JSONEncoder):
+    """Helper to convert Decimal to int/float for JSON serialization"""
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return int(obj) if obj % 1 == 0 else float(obj)
+        return super(DecimalEncoder, self).default(obj)
+
 
 # Initialize AWS clients
 dynamodb = boto3.resource('dynamodb')
@@ -66,7 +76,7 @@ def lambda_handler(event, context):
         return {
             'statusCode': result.get('statusCode', 200),
             'headers': get_cors_headers(),
-            'body': json.dumps(result.get('body', result))
+            'body': json.dumps(result.get('body', result), cls=DecimalEncoder)
         }
 
     except Exception as e:
@@ -80,7 +90,7 @@ def lambda_handler(event, context):
             'body': json.dumps({
                 'error': 'Internal server error',
                 'message': str(e)
-            })
+            }, cls=DecimalEncoder)
         }
 
 
@@ -256,27 +266,81 @@ def get_match(match_id: str) -> Dict[str, Any]:
 
 def update_match(match_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Update a match (typically status and notes).
+    Update a match with 2-level approval workflow support.
+
+    Status Flow:
+    - pending -> (CRC approve) -> pending_pi_approval -> (PI approve) -> approved
+    - pending -> (CRC reject) -> rejected
+    - pending_pi_approval -> (PI reject) -> rejected
 
     Updatable fields:
-    - status: New status (approved, rejected)
+    - status: New status (approved, rejected, pending_pi_approval)
     - notes: Review notes
-    - reviewed_by: User who reviewed
+    - reviewed_by: User who reviewed (CRC or PI)
+    - crc_reviewed_by: CRC who did first-level review
+    - crc_reviewed_at: Timestamp of CRC review
+    - pi_reviewed_by: PI who did final approval
+    - pi_reviewed_at: Timestamp of PI approval
     """
 
     try:
         table = dynamodb.Table(MATCHES_TABLE_NAME)
+
+        # First, get the current match to check its status
+        current_match = table.get_item(Key={'match_id': match_id})
+        if 'Item' not in current_match:
+            return {
+                'statusCode': 404,
+                'body': {'error': f'Match not found: {match_id}'}
+            }
+
+        current_status = current_match['Item'].get('status', 'pending')
 
         # Build update expression
         update_expressions = []
         expression_attribute_values = {}
         expression_attribute_names = {}
 
-        # Status
+        # Handle status changes based on 2-level workflow
         if 'status' in data:
+            new_status = data['status']
+
+            # Validate status transitions
+            valid_transitions = {
+                'pending': ['pending_pi_approval', 'rejected'],  # CRC can approve (move to PI review) or reject
+                'pending_pi_approval': ['approved', 'rejected'],  # PI can approve or reject
+                'approved': [],  # Final state
+                'rejected': []   # Final state
+            }
+
+            if new_status not in valid_transitions.get(current_status, []):
+                return {
+                    'statusCode': 400,
+                    'body': {
+                        'error': f'Invalid status transition from {current_status} to {new_status}',
+                        'current_status': current_status,
+                        'requested_status': new_status,
+                        'valid_transitions': valid_transitions.get(current_status, [])
+                    }
+                }
+
             update_expressions.append('#status = :status')
-            expression_attribute_values[':status'] = data['status']
+            expression_attribute_values[':status'] = new_status
             expression_attribute_names['#status'] = 'status'
+
+            # Track CRC approval (transition from pending to pending_pi_approval)
+            if current_status == 'pending' and new_status == 'pending_pi_approval':
+                update_expressions.append('crc_reviewed_by = :crc_reviewed_by')
+                update_expressions.append('crc_reviewed_at = :crc_reviewed_at')
+                expression_attribute_values[':crc_reviewed_by'] = data.get('reviewed_by', 'CRC')
+                expression_attribute_values[':crc_reviewed_at'] = datetime.utcnow().isoformat()
+
+            # Track PI approval (transition from pending_pi_approval to approved)
+            elif current_status == 'pending_pi_approval' and new_status == 'approved':
+                update_expressions.append('pi_reviewed_by = :pi_reviewed_by')
+                update_expressions.append('pi_reviewed_at = :pi_reviewed_at')
+                expression_attribute_values[':pi_reviewed_by'] = data.get('reviewed_by', 'PI')
+                expression_attribute_values[':pi_reviewed_at'] = datetime.utcnow().isoformat()
 
         # Notes
         if 'notes' in data:
@@ -314,7 +378,8 @@ def update_match(match_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         return {
             'success': True,
             'match': response['Attributes'],
-            'message': 'Match updated successfully'
+            'message': 'Match updated successfully',
+            'workflow_stage': response['Attributes'].get('status')
         }
 
     except ClientError as e:
