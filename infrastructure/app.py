@@ -70,21 +70,50 @@ class TrialEnrollmentAgentStack(Stack):
             encryption=dynamodb.TableEncryption.AWS_MANAGED
         )
 
+        # Table for storing patient-protocol matches
+        matches_table = dynamodb.Table(
+            self, "MatchesTable",
+            partition_key=dynamodb.Attribute(
+                name="match_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=RemovalPolicy.DESTROY,
+            point_in_time_recovery=True,
+            encryption=dynamodb.TableEncryption.AWS_MANAGED
+        )
+
+        # Add GSI for querying matches by patient_id
+        matches_table.add_global_secondary_index(
+            index_name="PatientIndex",
+            partition_key=dynamodb.Attribute(
+                name="patient_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        # Add GSI for querying matches by protocol_id
+        matches_table.add_global_secondary_index(
+            index_name="ProtocolIndex",
+            partition_key=dynamodb.Attribute(
+                name="protocol_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
         # ========================================
         # S3 Bucket for Protocol Documents
         # ========================================
 
-        # Bucket for storing protocol PDFs
-        # Create new bucket (allows event notifications)
-        protocol_bucket = s3.Bucket(
+        # Use existing bucket name
+        bucket_name = f"trial-enrollment-protocols-{self.account}"
+
+        # Import existing bucket (reference only, doesn't create or fail if missing)
+        protocol_bucket = s3.Bucket.from_bucket_name(
             self, "ProtocolDocumentsBucket",
-            bucket_name=f"trial-enrollment-protocols-{self.account}",
-            encryption=s3.BucketEncryption.S3_MANAGED,
-            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
-            removal_policy=RemovalPolicy.DESTROY,  # For dev/hackathon only
-            auto_delete_objects=True,  # Clean up on stack deletion
-            versioning=False,
-            enforce_ssl=True
+            bucket_name=bucket_name
         )
 
         # ========================================
@@ -134,7 +163,10 @@ class TrialEnrollmentAgentStack(Stack):
             actions=[
                 "healthlake:ReadResource",
                 "healthlake:SearchWithGet",
-                "healthlake:SearchWithPost"
+                "healthlake:SearchWithPost",
+                "healthlake:CreateResource",
+                "healthlake:UpdateResource",
+                "healthlake:DeleteResource"
             ],
             resources=["*"]  # Scope to specific datastore in production
         )
@@ -174,16 +206,101 @@ class TrialEnrollmentAgentStack(Stack):
             timeout=Duration.seconds(60),
             memory_size=512,
             environment={
-                "FHIR_ENDPOINT": os.environ.get("FHIR_ENDPOINT", "http://hapi.fhir.org/baseR4"),
-                "USE_HEALTHLAKE": "false",  # Set to true when HealthLake is configured
+                "FHIR_ENDPOINT": os.environ.get("FHIR_ENDPOINT", "https://healthlake.us-east-1.amazonaws.com/datastore/8640ed6b344b85e4729ac42df1c7d00e/r4"),
+                "USE_HEALTHLAKE": "true",  # Using HealthLake
                 "POWERTOOLS_SERVICE_NAME": "fhir-search",
                 "LOG_LEVEL": "INFO"
             },
             log_retention=logs.RetentionDays.ONE_WEEK
         )
 
-        # Grant permissions (uncomment when HealthLake is used)
-        # fhir_search_function.add_to_role_policy(healthlake_policy)
+        # Grant HealthLake permissions
+        fhir_search_function.add_to_role_policy(healthlake_policy)
+
+        # Lambda Authorizer for JWT validation
+        authorizer_function = lambda_.Function(
+            self, "AuthorizerFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=lambda_.Code.from_asset("../src/lambda/authorizer"),
+            handler="lambda_function.lambda_handler",
+            function_name="TrialEnrollment-Authorizer",
+            timeout=Duration.seconds(30),
+            memory_size=256,
+            environment={
+                "USER_POOL_ID": os.environ.get("COGNITO_USER_POOL_ID", "us-east-1_zLcYERVQI"),
+                "CLIENT_ID": os.environ.get("COGNITO_CLIENT_ID", "37ef9023q0b9q6lsdvc5rlvpo1"),
+                "POWERTOOLS_SERVICE_NAME": "authorizer",
+                "LOG_LEVEL": "INFO"
+            },
+            log_retention=logs.RetentionDays.ONE_WEEK
+        )
+
+        # Grant authorizer permission to invoke itself (for caching)
+        authorizer_function.add_permission(
+            "AllowAPIGatewayInvoke",
+            principal=iam.ServicePrincipal("apigateway.amazonaws.com")
+        )
+
+        # Protocol Manager Lambda for listing and searching protocols
+        protocol_manager_function = lambda_.Function(
+            self, "ProtocolManagerFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=lambda_.Code.from_asset("../src/lambda/protocol_manager"),
+            handler="handler.lambda_handler",
+            function_name="TrialEnrollment-ProtocolManager",
+            timeout=Duration.seconds(30),
+            memory_size=256,
+            environment={
+                "CRITERIA_CACHE_TABLE": criteria_cache_table.table_name,
+                "POWERTOOLS_SERVICE_NAME": "protocol-manager",
+                "LOG_LEVEL": "INFO"
+            },
+            log_retention=logs.RetentionDays.ONE_WEEK
+        )
+
+        # Grant permissions
+        criteria_cache_table.grant_read_data(protocol_manager_function)
+
+        # Patient Manager Lambda for managing patients and FHIR data
+        patient_manager_function = lambda_.Function(
+            self, "PatientManagerFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=lambda_.Code.from_asset("../src/lambda/patient_manager"),
+            handler="handler.lambda_handler",
+            function_name="TrialEnrollment-PatientManager",
+            timeout=Duration.seconds(60),
+            memory_size=512,
+            environment={
+                "FHIR_ENDPOINT": os.environ.get("FHIR_ENDPOINT", "https://healthlake.us-east-1.amazonaws.com/datastore/8640ed6b344b85e4729ac42df1c7d00e/r4"),
+                "USE_HEALTHLAKE": "true",
+                "POWERTOOLS_SERVICE_NAME": "patient-manager",
+                "LOG_LEVEL": "INFO"
+            },
+            log_retention=logs.RetentionDays.ONE_WEEK
+        )
+
+        # Grant HealthLake permissions
+        patient_manager_function.add_to_role_policy(healthlake_policy)
+
+        # Match Manager Lambda for managing patient-protocol matches
+        match_manager_function = lambda_.Function(
+            self, "MatchManagerFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=lambda_.Code.from_asset("../src/lambda/match_manager"),
+            handler="handler.lambda_handler",
+            function_name="TrialEnrollment-MatchManager",
+            timeout=Duration.seconds(30),
+            memory_size=256,
+            environment={
+                "MATCHES_TABLE": matches_table.table_name,
+                "POWERTOOLS_SERVICE_NAME": "match-manager",
+                "LOG_LEVEL": "INFO"
+            },
+            log_retention=logs.RetentionDays.ONE_WEEK
+        )
+
+        # Grant DynamoDB permissions to Match Manager
+        matches_table.grant_read_write_data(match_manager_function)
 
         # Protocol Orchestrator Lambda (declare first, used by Textract Processor)
         protocol_orchestrator_function = lambda_.Function(
@@ -294,15 +411,34 @@ class TrialEnrollmentAgentStack(Stack):
             )
         )
 
-        # Criteria Parser endpoint
+        # Token Authorizer for JWT validation
+        token_authorizer = apigw.TokenAuthorizer(
+            self, "JWTAuthorizer",
+            handler=authorizer_function,
+            identity_source="method.request.header.Authorization",
+            results_cache_ttl=Duration.minutes(5),  # Cache authorization results
+            authorizer_name="CognitoJWTAuthorizer"
+        )
+
+        # Criteria Parser endpoint (protected - StudyAdmin and PI only via authorizer)
         parser_resource = api.root.add_resource("parse-criteria")
         parser_integration = apigw.LambdaIntegration(criteria_parser_function)
-        parser_resource.add_method("POST", parser_integration)
+        parser_resource.add_method(
+            "POST",
+            parser_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
 
-        # FHIR Search endpoint
+        # FHIR Search endpoint (protected - all authenticated users)
         search_resource = api.root.add_resource("check-criteria")
         search_integration = apigw.LambdaIntegration(fhir_search_function)
-        search_resource.add_method("POST", search_integration)
+        search_resource.add_method(
+            "POST",
+            search_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
 
         # Health check endpoint
         health_resource = api.root.add_resource("health")
@@ -322,10 +458,123 @@ class TrialEnrollmentAgentStack(Stack):
             method_responses=[{"statusCode": "200"}]
         )
 
+        # Protocol endpoints (protected - all authenticated users can read)
+        protocols_resource = api.root.add_resource("protocols")
+        protocol_manager_integration = apigw.LambdaIntegration(protocol_manager_function)
+
+        # GET /protocols - List all protocols
+        protocols_resource.add_method(
+            "GET",
+            protocol_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # POST /protocols/search - Search protocols
+        protocols_search_resource = protocols_resource.add_resource("search")
+        protocols_search_resource.add_method(
+            "POST",
+            protocol_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /protocols/{id} - Get specific protocol
+        protocol_id_resource = protocols_resource.add_resource("{id}")
+        protocol_id_resource.add_method(
+            "GET",
+            protocol_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
         # Update Protocol Orchestrator with API endpoint
         protocol_orchestrator_function.add_environment(
             "PARSE_CRITERIA_API_ENDPOINT",
             f"{api.url}parse-criteria"
+        )
+
+        # Patient endpoints (protected - all authenticated users)
+        patients_resource = api.root.add_resource("patients")
+        patient_manager_integration = apigw.LambdaIntegration(patient_manager_function)
+
+        # GET /patients - List all patients
+        patients_resource.add_method(
+            "GET",
+            patient_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # POST /patients - Create new patient
+        patients_resource.add_method(
+            "POST",
+            patient_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # POST /patients/search - Search patients
+        patients_search_resource = patients_resource.add_resource("search")
+        patients_search_resource.add_method(
+            "POST",
+            patient_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /patients/{id} - Get specific patient
+        patient_id_resource = patients_resource.add_resource("{id}")
+        patient_id_resource.add_method(
+            "GET",
+            patient_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # Match endpoints (protected - all authenticated users)
+        matches_resource = api.root.add_resource("matches")
+        match_manager_integration = apigw.LambdaIntegration(match_manager_function)
+
+        # GET /matches - List all matches with filters
+        matches_resource.add_method(
+            "GET",
+            match_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # POST /matches - Create new match
+        matches_resource.add_method(
+            "POST",
+            match_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /matches/{id} - Get specific match
+        match_id_resource = matches_resource.add_resource("{id}")
+        match_id_resource.add_method(
+            "GET",
+            match_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # PUT /matches/{id} - Update match status
+        match_id_resource.add_method(
+            "PUT",
+            match_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # DELETE /matches/{id} - Delete match
+        match_id_resource.add_method(
+            "DELETE",
+            match_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
         )
 
         # ========================================
@@ -384,6 +633,48 @@ class TrialEnrollmentAgentStack(Stack):
             self, "ProtocolOrchestratorFunctionName",
             value=protocol_orchestrator_function.function_name,
             description="Protocol Orchestrator Lambda function name"
+        )
+
+        CfnOutput(
+            self, "AuthorizerFunctionName",
+            value=authorizer_function.function_name,
+            description="Lambda Authorizer function name"
+        )
+
+        CfnOutput(
+            self, "ProtocolManagerFunctionName",
+            value=protocol_manager_function.function_name,
+            description="Protocol Manager Lambda function name"
+        )
+
+        CfnOutput(
+            self, "PatientManagerFunctionName",
+            value=patient_manager_function.function_name,
+            description="Patient Manager Lambda function name"
+        )
+
+        CfnOutput(
+            self, "MatchManagerFunctionName",
+            value=match_manager_function.function_name,
+            description="Match Manager Lambda function name"
+        )
+
+        CfnOutput(
+            self, "MatchesTableName",
+            value=matches_table.table_name,
+            description="DynamoDB table for patient-protocol matches"
+        )
+
+        CfnOutput(
+            self, "CognitoUserPoolId",
+            value=os.environ.get("COGNITO_USER_POOL_ID", "us-east-1_zLcYERVQI"),
+            description="Cognito User Pool ID"
+        )
+
+        CfnOutput(
+            self, "CognitoClientId",
+            value=os.environ.get("COGNITO_CLIENT_ID", "37ef9023q0b9q6lsdvc5rlvpo1"),
+            description="Cognito App Client ID"
         )
 
 

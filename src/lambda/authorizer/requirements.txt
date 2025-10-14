@@ -1,0 +1,5 @@
+# Lambda Authorizer Dependencies
+# JWT verification with RSA signatures
+python-jose[cryptography]==3.3.0
+
+# No boto3 needed - it's included in Lambda runtime

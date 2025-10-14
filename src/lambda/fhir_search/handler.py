@@ -2127,6 +2127,12 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
         if not patient_id:
             return {
                 'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'POST,OPTIONS'
+                },
                 'body': json.dumps({
                     'error': 'Missing required field: patient_id'
                 })
@@ -2140,6 +2146,12 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
         else:
             return {
                 'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'POST,OPTIONS'
+                },
                 'body': json.dumps({
                     'error': 'Missing required field: criterion or criteria'
                 })
@@ -2191,7 +2203,9 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
             'statusCode': 200,
             'headers': {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'POST,OPTIONS'
             },
             'body': json.dumps(response_body)
         }
@@ -2202,7 +2216,9 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
             'statusCode': 500,
             'headers': {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'POST,OPTIONS'
             },
             'body': json.dumps({
                 'error': str(e),
