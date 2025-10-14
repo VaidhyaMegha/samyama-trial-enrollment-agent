@@ -488,6 +488,15 @@ class TrialEnrollmentAgentStack(Stack):
             authorization_type=apigw.AuthorizationType.CUSTOM
         )
 
+        # GET /protocols/{id}/criteria - Get cached parsed criteria for a protocol
+        protocol_criteria_resource = protocol_id_resource.add_resource("criteria")
+        protocol_criteria_resource.add_method(
+            "GET",
+            protocol_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
         # Update Protocol Orchestrator with API endpoint
         protocol_orchestrator_function.add_environment(
             "PARSE_CRITERIA_API_ENDPOINT",

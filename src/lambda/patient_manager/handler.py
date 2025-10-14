@@ -323,54 +323,65 @@ def create_patient_with_resources(patient_data: Dict[str, Any]) -> Dict[str, Any
         # 2. Create Conditions if provided
         if patient_data.get('conditions'):
             for condition in patient_data['conditions']:
-                condition_resource = {
-                    'resourceType': 'Condition',
-                    'subject': {'reference': f'Patient/{patient_id}'},
-                    'code': {
-                        'text': condition.get('name'),
-                        'coding': condition.get('coding', [])
-                    },
-                    'clinicalStatus': {
-                        'coding': [{
-                            'system': 'http://terminology.hl7.org/CodeSystem/condition-clinical',
-                            'code': condition.get('status', 'active')
+                try:
+                    condition_resource = {
+                        'resourceType': 'Condition',
+                        'subject': {'reference': f'Patient/{patient_id}'},
+                        'code': {
+                            'text': condition.get('name'),
+                            'coding': condition.get('coding', [])
+                        },
+                        'clinicalStatus': {
+                            'coding': [{
+                                'system': 'http://terminology.hl7.org/CodeSystem/condition-clinical',
+                                'code': condition.get('status', 'active')
+                            }]
+                        },
+                        'onsetDateTime': condition.get('onset_date', datetime.now().isoformat())
+                    }
+
+                    if condition.get('stage'):
+                        condition_resource['stage'] = [{
+                            'summary': {'text': f"Stage {condition['stage']}"}
                         }]
-                    },
-                    'onsetDateTime': condition.get('onset_date', datetime.now().isoformat())
-                }
 
-                if condition.get('stage'):
-                    condition_resource['stage'] = [{
-                        'summary': {'text': f"Stage {condition['stage']}"}
-                    }]
-
-                created_condition = create_fhir_resource(condition_resource)
-                created_resources.append({'type': 'Condition', 'id': created_condition['id']})
+                    created_condition = create_fhir_resource(condition_resource)
+                    created_resources.append({'type': 'Condition', 'id': created_condition['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create Condition: {str(e)}")
 
         # 3. Create Observations (lab values)
         if patient_data.get('observations'):
             for observation in patient_data['observations']:
-                observation_resource = {
-                    'resourceType': 'Observation',
-                    'status': 'final',
-                    'subject': {'reference': f'Patient/{patient_id}'},
-                    'code': {
-                        'text': observation.get('name'),
-                        'coding': observation.get('coding', [])
-                    },
-                    'valueQuantity': {
-                        'value': observation.get('value'),
-                        'unit': observation.get('unit'),
-                        'system': 'http://unitsofmeasure.org'
-                    },
-                    'effectiveDateTime': observation.get('date', datetime.now().isoformat())
-                }
+                try:
+                    observation_resource = {
+                        'resourceType': 'Observation',
+                        'status': 'final',
+                        'subject': {'reference': f'Patient/{patient_id}'},
+                        'code': {
+                            'text': observation.get('name'),
+                            'coding': observation.get('coding', [])
+                        },
+                        'valueQuantity': {
+                            'value': observation.get('value'),
+                            'unit': observation.get('unit'),
+                            'system': 'http://unitsofmeasure.org'
+                        },
+                        'effectiveDateTime': observation.get('date', datetime.now().isoformat())
+                    }
 
-                created_observation = create_fhir_resource(observation_resource)
-                created_resources.append({'type': 'Observation', 'id': created_observation['id']})
+                    created_observation = create_fhir_resource(observation_resource)
+                    created_resources.append({'type': 'Observation', 'id': created_observation['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create Observation: {str(e)}")
 
         # 4. Create Performance Status
         if patient_data.get('ecog_status') is not None:
+            ecog_status_value = patient_data['ecog_status']
+            # Ensure it's an integer
+            if isinstance(ecog_status_value, str):
+                ecog_status_value = int(ecog_status_value)
+
             ecog_resource = {
                 'resourceType': 'Observation',
                 'status': 'final',
@@ -390,150 +401,183 @@ def create_patient_with_resources(patient_data: Dict[str, Any]) -> Dict[str, Any
                     }],
                     'text': 'ECOG Performance Status'
                 },
-                'valueInteger': patient_data['ecog_status'],
+                'valueCodeableConcept': {
+                    'coding': [{
+                        'system': 'http://loinc.org',
+                        'code': f'LA{ecog_status_value}',
+                        'display': f'ECOG {ecog_status_value}'
+                    }],
+                    'text': f'ECOG {ecog_status_value}'
+                },
                 'effectiveDateTime': datetime.now().isoformat()
             }
 
-            created_ecog = create_fhir_resource(ecog_resource)
-            created_resources.append({'type': 'Observation (ECOG)', 'id': created_ecog['id']})
+            try:
+                created_ecog = create_fhir_resource(ecog_resource)
+                created_resources.append({'type': 'Observation (ECOG)', 'id': created_ecog['id']})
+                logger.info(f"Created ECOG observation: {created_ecog['id']}")
+            except Exception as e:
+                logger.warning(f"Failed to create ECOG observation: {str(e)}")
+                # Continue with other resources even if ECOG fails
 
         # 5. Create MedicationStatements
         if patient_data.get('medications'):
             for medication in patient_data['medications']:
-                med_resource = {
-                    'resourceType': 'MedicationStatement',
-                    'status': medication.get('status', 'active'),
-                    'subject': {'reference': f'Patient/{patient_id}'},
-                    'medicationCodeableConcept': {
-                        'text': medication.get('name'),
-                        'coding': medication.get('coding', [])
-                    },
-                    'effectiveDateTime': medication.get('start_date', datetime.now().isoformat())
-                }
+                try:
+                    med_resource = {
+                        'resourceType': 'MedicationStatement',
+                        'status': medication.get('status', 'active'),
+                        'subject': {'reference': f'Patient/{patient_id}'},
+                        'medicationCodeableConcept': {
+                            'text': medication.get('name'),
+                            'coding': medication.get('coding', [])
+                        },
+                        'effectiveDateTime': medication.get('start_date', datetime.now().isoformat())
+                    }
 
-                created_med = create_fhir_resource(med_resource)
-                created_resources.append({'type': 'MedicationStatement', 'id': created_med['id']})
+                    created_med = create_fhir_resource(med_resource)
+                    created_resources.append({'type': 'MedicationStatement', 'id': created_med['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create MedicationStatement: {str(e)}")
 
         # 6. Create AllergyIntolerances
         if patient_data.get('allergies'):
             for allergy in patient_data['allergies']:
-                allergy_resource = {
-                    'resourceType': 'AllergyIntolerance',
-                    'patient': {'reference': f'Patient/{patient_id}'},
-                    'code': {
-                        'text': allergy.get('name'),
-                        'coding': allergy.get('coding', [])
-                    },
-                    'type': allergy.get('type', 'allergy'),
-                    'category': allergy.get('category', ['food']),
-                    'criticality': allergy.get('criticality', 'low'),
-                    'recordedDate': allergy.get('recorded_date', datetime.now().isoformat())
-                }
+                try:
+                    allergy_resource = {
+                        'resourceType': 'AllergyIntolerance',
+                        'patient': {'reference': f'Patient/{patient_id}'},
+                        'code': {
+                            'text': allergy.get('name'),
+                            'coding': allergy.get('coding', [])
+                        },
+                        'type': allergy.get('type', 'allergy'),
+                        'category': allergy.get('category', ['food']),
+                        'criticality': allergy.get('criticality', 'low'),
+                        'recordedDate': allergy.get('recorded_date', datetime.now().isoformat())
+                    }
 
-                created_allergy = create_fhir_resource(allergy_resource)
-                created_resources.append({'type': 'AllergyIntolerance', 'id': created_allergy['id']})
+                    created_allergy = create_fhir_resource(allergy_resource)
+                    created_resources.append({'type': 'AllergyIntolerance', 'id': created_allergy['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create AllergyIntolerance: {str(e)}")
 
         # 7. Create Procedures
         if patient_data.get('procedures'):
             for procedure in patient_data['procedures']:
-                procedure_resource = {
-                    'resourceType': 'Procedure',
-                    'status': 'completed',
-                    'subject': {'reference': f'Patient/{patient_id}'},
-                    'code': {
-                        'text': procedure.get('name'),
-                        'coding': procedure.get('coding', [])
-                    },
-                    'performedDateTime': procedure.get('performed_date', datetime.now().isoformat())
-                }
+                try:
+                    procedure_resource = {
+                        'resourceType': 'Procedure',
+                        'status': 'completed',
+                        'subject': {'reference': f'Patient/{patient_id}'},
+                        'code': {
+                            'text': procedure.get('name'),
+                            'coding': procedure.get('coding', [])
+                        },
+                        'performedDateTime': procedure.get('performed_date', datetime.now().isoformat())
+                    }
 
-                created_procedure = create_fhir_resource(procedure_resource)
-                created_resources.append({'type': 'Procedure', 'id': created_procedure['id']})
+                    created_procedure = create_fhir_resource(procedure_resource)
+                    created_resources.append({'type': 'Procedure', 'id': created_procedure['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create Procedure: {str(e)}")
 
         # 8. Create Immunizations
         if patient_data.get('immunizations'):
             for immunization in patient_data['immunizations']:
-                imm_resource = {
-                    'resourceType': 'Immunization',
-                    'status': 'completed',
-                    'patient': {'reference': f'Patient/{patient_id}'},
-                    'vaccineCode': {
-                        'text': immunization.get('vaccine'),
-                        'coding': immunization.get('coding', [])
-                    },
-                    'occurrenceDateTime': immunization.get('date', datetime.now().isoformat())
-                }
+                try:
+                    imm_resource = {
+                        'resourceType': 'Immunization',
+                        'status': 'completed',
+                        'patient': {'reference': f'Patient/{patient_id}'},
+                        'vaccineCode': {
+                            'text': immunization.get('vaccine'),
+                            'coding': immunization.get('coding', [])
+                        },
+                        'occurrenceDateTime': immunization.get('date', datetime.now().isoformat())
+                    }
 
-                created_imm = create_fhir_resource(imm_resource)
-                created_resources.append({'type': 'Immunization', 'id': created_imm['id']})
+                    created_imm = create_fhir_resource(imm_resource)
+                    created_resources.append({'type': 'Immunization', 'id': created_imm['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create Immunization: {str(e)}")
 
         # 9. Create FamilyMemberHistory
         if patient_data.get('family_history'):
             for history in patient_data['family_history']:
-                fmh_resource = {
-                    'resourceType': 'FamilyMemberHistory',
-                    'status': 'completed',
-                    'patient': {'reference': f'Patient/{patient_id}'},
-                    'relationship': {
-                        'text': history.get('relationship'),
-                        'coding': history.get('relationship_coding', [])
-                    },
-                    'condition': [{
-                        'code': {
-                            'text': history.get('condition'),
-                            'coding': history.get('condition_coding', [])
-                        }
-                    }],
-                    'date': history.get('date', datetime.now().isoformat())
-                }
+                try:
+                    fmh_resource = {
+                        'resourceType': 'FamilyMemberHistory',
+                        'status': 'completed',
+                        'patient': {'reference': f'Patient/{patient_id}'},
+                        'relationship': {
+                            'text': history.get('relationship'),
+                            'coding': history.get('relationship_coding', [])
+                        },
+                        'condition': [{
+                            'code': {
+                                'text': history.get('condition'),
+                                'coding': history.get('condition_coding', [])
+                            }
+                        }],
+                        'date': history.get('date', datetime.now().isoformat())
+                    }
 
-                created_fmh = create_fhir_resource(fmh_resource)
-                created_resources.append({'type': 'FamilyMemberHistory', 'id': created_fmh['id']})
+                    created_fmh = create_fhir_resource(fmh_resource)
+                    created_resources.append({'type': 'FamilyMemberHistory', 'id': created_fmh['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create FamilyMemberHistory: {str(e)}")
 
         # 10. Create Encounters
         if patient_data.get('encounters'):
             for encounter in patient_data['encounters']:
-                enc_resource = {
-                    'resourceType': 'Encounter',
-                    'status': encounter.get('status', 'finished'),
-                    'class': {
-                        'system': 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
-                        'code': encounter.get('class', 'AMB'),
-                        'display': encounter.get('class_display', 'ambulatory')
-                    },
-                    'subject': {'reference': f'Patient/{patient_id}'},
-                    'period': {
-                        'start': encounter.get('start_date', datetime.now().isoformat()),
-                        'end': encounter.get('end_date', datetime.now().isoformat())
+                try:
+                    enc_resource = {
+                        'resourceType': 'Encounter',
+                        'status': encounter.get('status', 'finished'),
+                        'class': {
+                            'system': 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
+                            'code': encounter.get('class', 'AMB'),
+                            'display': encounter.get('class_display', 'ambulatory')
+                        },
+                        'subject': {'reference': f'Patient/{patient_id}'},
+                        'period': {
+                            'start': encounter.get('start_date', datetime.now().isoformat()),
+                            'end': encounter.get('end_date', datetime.now().isoformat())
+                        }
                     }
-                }
 
-                if encounter.get('type'):
-                    enc_resource['type'] = [{
-                        'text': encounter['type'],
-                        'coding': encounter.get('type_coding', [])
-                    }]
+                    if encounter.get('type'):
+                        enc_resource['type'] = [{
+                            'text': encounter['type'],
+                            'coding': encounter.get('type_coding', [])
+                        }]
 
-                created_enc = create_fhir_resource(enc_resource)
-                created_resources.append({'type': 'Encounter', 'id': created_enc['id']})
+                    created_enc = create_fhir_resource(enc_resource)
+                    created_resources.append({'type': 'Encounter', 'id': created_enc['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create Encounter: {str(e)}")
 
         # 11. Create DiagnosticReports
         if patient_data.get('diagnostic_reports'):
             for report in patient_data['diagnostic_reports']:
-                report_resource = {
-                    'resourceType': 'DiagnosticReport',
-                    'status': report.get('status', 'final'),
-                    'subject': {'reference': f'Patient/{patient_id}'},
-                    'code': {
-                        'text': report.get('name'),
-                        'coding': report.get('coding', [])
-                    },
-                    'conclusion': report.get('conclusion', ''),
-                    'issued': report.get('issued_date', datetime.now().isoformat())
-                }
+                try:
+                    report_resource = {
+                        'resourceType': 'DiagnosticReport',
+                        'status': report.get('status', 'final'),
+                        'subject': {'reference': f'Patient/{patient_id}'},
+                        'code': {
+                            'text': report.get('name'),
+                            'coding': report.get('coding', [])
+                        },
+                        'conclusion': report.get('conclusion', ''),
+                        'issued': report.get('issued_date', datetime.now().isoformat())
+                    }
 
-                created_report = create_fhir_resource(report_resource)
-                created_resources.append({'type': 'DiagnosticReport', 'id': created_report['id']})
+                    created_report = create_fhir_resource(report_resource)
+                    created_resources.append({'type': 'DiagnosticReport', 'id': created_report['id']})
+                except Exception as e:
+                    logger.warning(f"Failed to create DiagnosticReport: {str(e)}")
 
         return {
             'success': True,
