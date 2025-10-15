@@ -37,9 +37,9 @@ CLASSIFIER_FUNCTION = os.environ.get('CLASSIFIER_FUNCTION', 'TrialEnrollmentAgen
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Main Lambda handler for admin operations
+    Main Lambda handler for admin and PI operations
 
-    Routes:
+    Admin Routes:
     - GET /admin/dashboard -> get_dashboard_metrics()
     - GET /admin/processing-status -> get_processing_status()
     - GET /admin/logs -> get_system_logs()
@@ -47,6 +47,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     - POST /admin/reprocess/{trial_id} -> reprocess_trial()
     - DELETE /admin/trials/{trial_id} -> delete_trial()
     - GET /admin/trials -> get_all_trials_admin()
+
+    PI Routes:
+    - GET /pi/dashboard -> get_pi_dashboard_metrics()
+    - GET /pi/trials -> get_pi_trials()
+    - GET /pi/trials/{trial_id} -> get_pi_trial_details()
+    - GET /pi/export/enrollment-summary -> export_enrollment_summary()
     """
 
     print(f"Event: {json.dumps(event)}")
@@ -61,17 +67,51 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     username = authorizer_context.get('username', 'unknown')
     groups = authorizer_context.get('groups', '').split(',') if authorizer_context.get('groups') else []
 
-    print(f"Admin User: {username}, Groups: {groups}")
+    print(f"User: {username}, Groups: {groups}")
 
-    # Verify admin access
-    if 'StudyAdmin' not in groups:
+    # Handle OPTIONS request for CORS preflight
+    if http_method == 'OPTIONS':
         return {
-            'statusCode': 403,
+            'statusCode': 200,
             'headers': cors_headers(),
-            'body': json.dumps({'error': 'Access denied. StudyAdmin role required.'})
+            'body': json.dumps({'message': 'CORS preflight OK'})
         }
 
     try:
+        # PI Routes (accessible by PI and StudyAdmin)
+        if path.startswith('/pi/'):
+            if 'PI' not in groups and 'StudyAdmin' not in groups:
+                return {
+                    'statusCode': 403,
+                    'headers': cors_headers(),
+                    'body': json.dumps({'error': 'Access denied. PI or StudyAdmin role required.'})
+                }
+
+            if path == '/pi/dashboard' and http_method == 'GET':
+                return get_pi_dashboard_metrics()
+            elif path == '/pi/trials' and http_method == 'GET':
+                return get_pi_trials()
+            elif path.startswith('/pi/trials/') and http_method == 'GET':
+                trial_id = path_parameters.get('id') or path.split('/')[-1]
+                return get_pi_trial_details(trial_id)
+            elif path == '/pi/export/enrollment-summary' and http_method == 'GET':
+                trial_id = query_parameters.get('trial_id')
+                return export_enrollment_summary(trial_id)
+            else:
+                return {
+                    'statusCode': 404,
+                    'headers': cors_headers(),
+                    'body': json.dumps({'error': 'PI route not found'})
+                }
+
+        # Admin Routes (StudyAdmin only)
+        if 'StudyAdmin' not in groups:
+            return {
+                'statusCode': 403,
+                'headers': cors_headers(),
+                'body': json.dumps({'error': 'Access denied. StudyAdmin role required.'})
+            }
+
         # Route to appropriate handler
         if path == '/admin/dashboard' and http_method == 'GET':
             return get_dashboard_metrics()
@@ -638,6 +678,240 @@ def get_all_trials_admin(query_params: Dict[str, str]) -> Dict[str, Any]:
 
     except Exception as e:
         print(f"Error getting trials: {str(e)}")
+        raise
+
+
+def get_pi_dashboard_metrics() -> Dict[str, Any]:
+    """
+    Get PI-specific dashboard metrics
+    Returns: Active trials, pending approvals, match rate, recent pending reviews
+    """
+    try:
+        criteria_cache = dynamodb.Table(CRITERIA_CACHE_TABLE)
+        matches_table = dynamodb.Table(MATCHES_TABLE)
+
+        # Get all protocols (trials)
+        protocols_response = criteria_cache.scan()
+        protocols = protocols_response.get('Items', [])
+        total_protocols = len(protocols)
+
+        # Get all matches
+        matches_response = matches_table.scan()
+        matches = matches_response.get('Items', [])
+
+        # Calculate PI metrics
+        pending_pi_approval = len([m for m in matches if m.get('status') == 'pending_pi_approval'])
+        approved_matches = len([m for m in matches if m.get('status') == 'approved'])
+        rejected_matches = len([m for m in matches if m.get('status') == 'rejected'])
+        total_enrolled = approved_matches  # Assuming approved = enrolled
+
+        # Calculate match rate
+        total_reviewed = approved_matches + rejected_matches
+        match_rate = round((approved_matches / total_reviewed * 100), 2) if total_reviewed > 0 else 0
+
+        # Get pending approvals with details (last 10)
+        pending_list = [m for m in matches if m.get('status') == 'pending_pi_approval']
+        pending_list.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        pending_reviews = []
+        for match in pending_list[:10]:
+            pending_reviews.append({
+                'id': match.get('match_id'),
+                'patient': match.get('patient_id'),
+                'protocol': match.get('protocol_id'),
+                'confidence': match.get('match_score', 0),
+                'date': match.get('created_at')
+            })
+
+        return {
+            'statusCode': 200,
+            'headers': cors_headers(),
+            'body': json.dumps({
+                'success': True,
+                'metrics': {
+                    'active_trials': total_protocols,
+                    'total_enrolled': total_enrolled,
+                    'pending_pi_approval': pending_pi_approval,
+                    'match_rate': match_rate
+                },
+                'pending_reviews': pending_reviews,
+                'timestamp': datetime.utcnow().isoformat()
+            }, cls=DecimalEncoder)
+        }
+    except Exception as e:
+        print(f"Error getting PI dashboard metrics: {str(e)}")
+        raise
+
+
+def get_pi_trials() -> Dict[str, Any]:
+    """
+    Get all trials with enrollment metrics for PI
+    """
+    try:
+        criteria_cache = dynamodb.Table(CRITERIA_CACHE_TABLE)
+        matches_table = dynamodb.Table(MATCHES_TABLE)
+
+        # Get all protocols
+        protocols_response = criteria_cache.scan()
+        protocols = protocols_response.get('Items', [])
+
+        # Get all matches
+        matches_response = matches_table.scan()
+        matches = matches_response.get('Items', [])
+
+        # Build trial list with enrollment metrics
+        trials = []
+        for protocol in protocols:
+            trial_id = protocol.get('trial_id')
+
+            # Filter matches for this trial
+            trial_matches = [m for m in matches if m.get('protocol_id') == trial_id]
+
+            # Calculate metrics
+            enrolled = len([m for m in trial_matches if m.get('status') == 'approved'])
+            pending = len([m for m in trial_matches if m.get('status') == 'pending_pi_approval'])
+            rejected = len([m for m in trial_matches if m.get('status') == 'rejected'])
+
+            # Calculate match rate
+            total_reviewed = enrolled + rejected
+            match_rate = round((enrolled / total_reviewed * 100), 2) if total_reviewed > 0 else 0
+
+            trials.append({
+                'id': trial_id,
+                'title': protocol.get('title', trial_id),
+                'identifier': trial_id,
+                'enrolled': enrolled,
+                'pending': pending,
+                'rejected': rejected,
+                'match_rate': match_rate,
+                'target': 100,  # Placeholder, could be in protocol metadata
+                'upload_date': protocol.get('timestamp')
+            })
+
+        # Sort by enrollment (most active first)
+        trials.sort(key=lambda x: x['enrolled'], reverse=True)
+
+        return {
+            'statusCode': 200,
+            'headers': cors_headers(),
+            'body': json.dumps({
+                'success': True,
+                'trials': trials,
+                'count': len(trials),
+                'timestamp': datetime.utcnow().isoformat()
+            }, cls=DecimalEncoder)
+        }
+    except Exception as e:
+        print(f"Error getting PI trials: {str(e)}")
+        raise
+
+
+def get_pi_trial_details(trial_id: str) -> Dict[str, Any]:
+    """
+    Get detailed enrollment data for a specific trial
+    """
+    try:
+        criteria_cache = dynamodb.Table(CRITERIA_CACHE_TABLE)
+        matches_table = dynamodb.Table(MATCHES_TABLE)
+
+        # Get protocol
+        protocol_response = criteria_cache.get_item(Key={'trial_id': trial_id})
+        if 'Item' not in protocol_response:
+            return {
+                'statusCode': 404,
+                'headers': cors_headers(),
+                'body': json.dumps({'error': 'Trial not found'})
+            }
+
+        protocol = protocol_response['Item']
+
+        # Get all matches for this trial
+        matches_response = matches_table.scan(
+            FilterExpression='protocol_id = :protocol_id',
+            ExpressionAttributeValues={':protocol_id': trial_id}
+        )
+        matches = matches_response.get('Items', [])
+
+        # Organize by status
+        patient_roster = {
+            'approved': [m for m in matches if m.get('status') == 'approved'],
+            'pending_pi_approval': [m for m in matches if m.get('status') == 'pending_pi_approval'],
+            'pending': [m for m in matches if m.get('status') == 'pending'],
+            'rejected': [m for m in matches if m.get('status') == 'rejected']
+        }
+
+        # Calculate enrollment metrics
+        total_screened = len(matches)
+        approved = len(patient_roster['approved'])
+
+        return {
+            'statusCode': 200,
+            'headers': cors_headers(),
+            'body': json.dumps({
+                'success': True,
+                'trial': {
+                    'id': trial_id,
+                    'title': protocol.get('title', trial_id),
+                    'identifier': trial_id,
+                    'upload_date': protocol.get('timestamp'),
+                    'inclusion_criteria_count': len(protocol.get('inclusion_criteria', [])),
+                    'exclusion_criteria_count': len(protocol.get('exclusion_criteria', []))
+                },
+                'enrollment': {
+                    'total_screened': total_screened,
+                    'approved': approved,
+                    'pending_pi_approval': len(patient_roster['pending_pi_approval']),
+                    'pending_crc': len(patient_roster['pending']),
+                    'rejected': len(patient_roster['rejected']),
+                    'enrollment_rate': round((approved / total_screened * 100), 2) if total_screened > 0 else 0
+                },
+                'patient_roster': patient_roster,
+                'timestamp': datetime.utcnow().isoformat()
+            }, cls=DecimalEncoder)
+        }
+    except Exception as e:
+        print(f"Error getting trial details: {str(e)}")
+        raise
+
+
+def export_enrollment_summary(trial_id: str = None) -> Dict[str, Any]:
+    """
+    Generate CSV data for enrollment summary
+    Returns CSV string that frontend can download
+    """
+    try:
+        matches_table = dynamodb.Table(MATCHES_TABLE)
+
+        # Get matches (filter by trial if provided)
+        if trial_id:
+            matches_response = matches_table.scan(
+                FilterExpression='protocol_id = :protocol_id',
+                ExpressionAttributeValues={':protocol_id': trial_id}
+            )
+        else:
+            matches_response = matches_table.scan()
+
+        matches = matches_response.get('Items', [])
+
+        # Generate CSV
+        csv_lines = ['Patient ID,Protocol ID,Match Score,Status,Created At,Reviewed By,Reviewed At']
+
+        for match in matches:
+            line = f"{match.get('patient_id')},{match.get('protocol_id')},{match.get('match_score')},{match.get('status')},{match.get('created_at')},{match.get('pi_reviewed_by', 'N/A')},{match.get('pi_reviewed_at', 'N/A')}"
+            csv_lines.append(line)
+
+        csv_content = '\n'.join(csv_lines)
+
+        return {
+            'statusCode': 200,
+            'headers': {
+                **cors_headers(),
+                'Content-Type': 'text/csv',
+                'Content-Disposition': f'attachment; filename="enrollment_summary_{trial_id or "all"}_{datetime.utcnow().strftime("%Y%m%d")}.csv"'
+            },
+            'body': csv_content
+        }
+    except Exception as e:
+        print(f"Error exporting enrollment summary: {str(e)}")
         raise
 
 

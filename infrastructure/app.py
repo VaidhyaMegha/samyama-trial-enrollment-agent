@@ -736,6 +736,46 @@ class TrialEnrollmentAgentStack(Stack):
             authorization_type=apigw.AuthorizationType.CUSTOM
         )
 
+        # PI endpoints (protected - PI and StudyAdmin only via authorizer)
+        pi_resource = api.root.add_resource("pi")
+
+        # GET /pi/dashboard - PI dashboard metrics
+        pi_dashboard_resource = pi_resource.add_resource("dashboard")
+        pi_dashboard_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /pi/trials - List all trials with enrollment metrics
+        pi_trials_resource = pi_resource.add_resource("trials")
+        pi_trials_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /pi/trials/{id} - Trial details and patient roster
+        pi_trial_id_resource = pi_trials_resource.add_resource("{id}")
+        pi_trial_id_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /pi/export/enrollment-summary - Export enrollment CSV
+        pi_export_resource = pi_resource.add_resource("export")
+        pi_export_enrollment_resource = pi_export_resource.add_resource("enrollment-summary")
+        pi_export_enrollment_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
         # ========================================
         # Outputs
         # ========================================
