@@ -1,0 +1,593 @@
+{
+  "info": {
+    "name": "Clinical Trial Protocols - Parse Criteria API - Part 1",
+    "description": "Collection of 20 clinical trial protocols (Part 1 of 2) for seeding the criteria cache table.\n\n## Usage Instructions:\n\n1. **Set Collection Variables:**\n   - `base_url`: https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod\n   - `auth_token`: Get a fresh JWT token by running:\n     ```bash\n     cd infrastructure && python3 get_jwt_token.py --role studyadmin\n     ```\n     Copy the access token and paste it into the `auth_token` variable.\n\n2. **Authentication:**\n   - The collection is configured to use Bearer token authentication\n   - Token expires in 60 minutes - refresh if needed\n\n3. **Running Requests:**\n   - Each request takes 3-4 minutes to complete (Bedrock AI processing)\n   - Run requests one at a time or use Collection Runner with appropriate delays\n   - API Gateway timeout is 30 seconds, but Lambda continues processing\n\n4. **Expected Response:**\n   - Status: 200 OK\n   - Body contains parsed criteria with inclusion/exclusion criteria\n   - Criteria are automatically cached in DynamoDB\n\n## Protocol Coverage:\n\nThis collection includes comprehensive FHIR resource coverage:\n- Patient demographics (age, gender)\n- Conditions (diagnoses, cancer types/stages)\n- Observations (lab values, performance status)\n- Medications (current medications)\n- Procedures (prior treatments)\n- Allergies\n- Immunizations\n- Family history\n- Diagnostic reports\n- Care plans\n- Encounters\n\n## Notes:\n\n- Total protocols across both parts: 40\n- Each protocol has been carefully designed with realistic clinical criteria\n- Protocols cover diverse medical specialties",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "clinical-trial-seeding"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "Get token by running: cd infrastructure && python3 get_jwt_token.py --role studyadmin"
+    }
+  ],
+  "item": [
+    {
+      "name": "ONCO-2024-001 - Phase III Trial for Advanced Non-Small Cell Lung Cancer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"ONCO-2024-001\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age between 18 and 75 years\\n- Histologically confirmed non-small cell lung cancer (NSCLC) Stage IIIB or IV\\n- ECOG performance status 0-1\\n- Adequate bone marrow function: Hemoglobin \\u22659 g/dL, WBC \\u22653000/\\u03bcL, Platelet count \\u2265100,000/\\u03bcL\\n- Adequate renal function: Serum creatinine \\u22641.5 mg/dL or eGFR \\u226560 mL/min/1.73m2\\n- Adequate hepatic function: Total bilirubin \\u22641.5x ULN, AST and ALT \\u22642.5x ULN\\n- Currently taking carboplatin or cisplatin chemotherapy\\n- Prior surgical resection documented within 6 months\\n- Up-to-date influenza vaccination\\n- Documented pathology report from diagnostic biopsy\\n- Active treatment plan documented\\n\\nExclusion Criteria:\\n- Known allergy to platinum-based chemotherapy agents\\n- History of interstitial lung disease\\n- Active brain metastases\\n- Pregnant or breastfeeding\\n- History of cardiac disease within last 6 months\\n- Family history of sudden cardiac death before age 50\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Phase III Trial for Advanced Non-Small Cell Lung Cancer\n\nTrial ID: ONCO-2024-001\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "CARDIO-2024-002 - Heart Failure with Reduced Ejection Fraction Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"CARDIO-2024-002\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 40 years or older\\n- Diagnosed with chronic heart failure (NYHA Class II-III)\\n- Left ventricular ejection fraction \\u226440% documented by echocardiogram\\n- On stable dose of ACE inhibitor or ARB for at least 3 months\\n- NT-proBNP >300 pg/mL or BNP >100 pg/mL\\n- Blood pressure: Systolic BP 90-160 mmHg\\n- Serum potassium between 3.5-5.0 mEq/L\\n- Currently taking beta-blocker medication\\n- Documented cardiac catheterization procedure within 12 months\\n- No known allergy to contrast dye\\n- Current cardiac rehabilitation care plan in place\\n\\nExclusion Criteria:\\n- Recent myocardial infarction (within 3 months)\\n- eGFR <30 mL/min/1.73m2\\n- History of ventricular arrhythmia\\n- Implanted cardiac device (pacemaker or ICD)\\n- Allergy to ACE inhibitors or ARBs\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Heart Failure with Reduced Ejection Fraction Study\n\nTrial ID: CARDIO-2024-002\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "DIABETES-2024-003 - Type 2 Diabetes Mellitus with Obesity Management",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"DIABETES-2024-003\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age between 25 and 70 years\\n- Male or female gender\\n- Diagnosed with Type 2 Diabetes Mellitus for at least 1 year\\n- HbA1c between 7.5% and 11%\\n- BMI \\u226530 kg/m2\\n- Fasting glucose between 126-300 mg/dL\\n- Currently on metformin therapy for at least 3 months\\n- C-peptide level >1.0 ng/mL\\n- Thyroid stimulating hormone (TSH) within normal range\\n- Total cholesterol <240 mg/dL\\n- LDL cholesterol <160 mg/dL\\n- Triglycerides <500 mg/dL\\n- Documented diabetes care plan with endocrinologist\\n- Completed hepatitis B vaccination series\\n- Recent ophthalmology exam report (diabetic retinopathy screening)\\n\\nExclusion Criteria:\\n- Type 1 Diabetes Mellitus diagnosis\\n- History of diabetic ketoacidosis\\n- Severe hypoglycemia events in past 6 months\\n- Known allergy to metformin or sulfonylureas\\n- Active foot ulcers or amputation\\n- Family history of Multiple Endocrine Neoplasia type 2\\n- Currently taking insulin therapy\\n- Liver function tests: ALT or AST >3x ULN\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Type 2 Diabetes Mellitus with Obesity Management\n\nTrial ID: DIABETES-2024-003\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "NEURO-2024-004 - Early Parkinson's Disease Neuroprotection Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"NEURO-2024-004\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 30-80 years\\n- Diagnosed with Parkinson's disease within past 2 years\\n- Hoehn and Yahr stage 1-2\\n- MoCA score \\u226524 points\\n- Currently on levodopa/carbidopa medication\\n- Adequate dopamine transporter uptake on DaTscan imaging\\n- Normal vitamin B12 levels: >200 pg/mL\\n- Folate level >3 ng/mL\\n- Complete blood count within normal limits\\n- Documented neurology care plan\\n- Brain MRI report excluding other causes\\n- Completed pneumococcal vaccination\\n\\nExclusion Criteria:\\n- Secondary or atypical Parkinsonism\\n- Prior brain surgery or deep brain stimulation\\n- Known allergy to levodopa\\n- History of psychosis or dementia\\n- Significant depression: PHQ-9 score >15\\n- Family history of early-onset Parkinson's (before age 40)\\n- Current use of dopamine-blocking medications\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Early Parkinson's Disease Neuroprotection Study\n\nTrial ID: NEURO-2024-004\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "RHEUM-2024-005 - Rheumatoid Arthritis Biologic Therapy Trial",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"RHEUM-2024-005\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-75 years\\n- Diagnosed with Rheumatoid Arthritis meeting ACR/EULAR criteria\\n- Active disease: DAS28-CRP >3.2\\n- RF (Rheumatoid Factor) positive >20 IU/mL or Anti-CCP antibody positive >20 U/mL\\n- ESR (Erythrocyte Sedimentation Rate) \\u226528 mm/hr or CRP \\u226510 mg/L\\n- Inadequate response to methotrexate for at least 3 months\\n- Currently on stable DMARD therapy\\n- Adequate bone marrow: WBC \\u22653500/\\u03bcL, Platelets \\u2265150,000/\\u03bcL\\n- Liver function: ALT and AST \\u22642x ULN\\n- Negative QuantiFERON-TB Gold test or documented latent TB treatment\\n- Hepatitis B and C screening negative\\n- Up-to-date with MMR and varicella vaccinations\\n- Recent joint X-ray or ultrasound diagnostic report\\n- Active rheumatology care plan\\n\\nExclusion Criteria:\\n- Known allergy to biologic agents (TNF inhibitors, IL-6 inhibitors)\\n- Active infection requiring antibiotics\\n- History of lymphoma or solid organ malignancy (except treated skin cancer)\\n- Significant immunodeficiency documented\\n- Family history of autoimmune disease with severe complications\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Rheumatoid Arthritis Biologic Therapy Trial\n\nTrial ID: RHEUM-2024-005\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "NEPHRO-2024-006 - Chronic Kidney Disease Progression Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"NEPHRO-2024-006\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 30-80 years\\n- Chronic Kidney Disease Stage 3b or 4\\n- eGFR between 15-44 mL/min/1.73m2\\n- Serum creatinine 2.0-5.0 mg/dL\\n- Proteinuria: Urine protein >500 mg/24hr or UACR >300 mg/g\\n- Blood pressure controlled: <140/90 mmHg\\n- Hemoglobin 9-12 g/dL (anemia of CKD)\\n- Serum albumin \\u22653.0 g/dL\\n- Calcium level 8.5-10.5 mg/dL\\n- Phosphorus \\u22645.5 mg/dL\\n- PTH (Parathyroid Hormone) 150-600 pg/mL\\n- Currently on ACE inhibitor or ARB therapy\\n- Documented nephrology care plan\\n- Recent renal ultrasound report\\n\\nExclusion Criteria:\\n- Known allergy to ACE inhibitors or ARBs\\n- Active kidney stones documented on imaging\\n- Acute kidney injury within past 3 months\\n- History of kidney transplantation\\n- Polycystic kidney disease diagnosis\\n- Currently on dialysis treatment\\n- Family history of hereditary nephritis\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Chronic Kidney Disease Progression Study\n\nTrial ID: NEPHRO-2024-006\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "HEPATO-2024-007 - Non-Alcoholic Fatty Liver Disease (NAFLD) Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"HEPATO-2024-007\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 25-70 years\\n- BMI \\u226528 kg/m2\\n- Diagnosed with NAFLD via liver biopsy or imaging\\n- FibroScan liver stiffness 7-12 kPa (F2-F3 fibrosis)\\n- ALT (Alanine Aminotransferase) 40-120 U/L\\n- AST (Aspartate Aminotransferase) 35-100 U/L\\n- Fasting glucose \\u2264126 mg/dL or HbA1c <6.5%\\n- Total cholesterol 180-300 mg/dL\\n- Triglycerides 150-500 mg/dL\\n- Platelet count \\u2265150,000/\\u03bcL\\n- INR (International Normalized Ratio) \\u22641.2\\n- Albumin \\u22653.5 g/dL\\n- No current hepatotoxic medications\\n- Hepatitis A and B vaccination completed\\n- Documented liver biopsy pathology report\\n- Active hepatology care plan\\n\\nExclusion Criteria:\\n- Known alcohol use disorder (>20g/day for females, >30g/day for males)\\n- Viral hepatitis B or C infection documented\\n- Hemochromatosis or Wilson's disease\\n- Autoimmune hepatitis diagnosis\\n- History of decompensated cirrhosis\\n- Known allergy to statins or fibrates\\n- Family history of hereditary liver disease\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Non-Alcoholic Fatty Liver Disease (NAFLD) Study\n\nTrial ID: HEPATO-2024-007\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "ENDO-2024-008 - Thyroid Cancer Post-Surgical Follow-up Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"ENDO-2024-008\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-75 years\\n- Histologically confirmed papillary or follicular thyroid cancer\\n- Post-total thyroidectomy (documented surgical procedure)\\n- TSH level >30 mIU/L (for RAI preparation) or <0.1 mIU/L (for suppression)\\n- Thyroglobulin level measurable\\n- Adequate bone marrow: WBC \\u22653000/\\u03bcL\\n- Adequate renal function: Creatinine \\u22641.5 mg/dL\\n- Negative pregnancy test for females\\n- Recent whole body iodine scan diagnostic report\\n- Current endocrinology care plan\\n- Up-to-date tetanus vaccination\\n\\nExclusion Criteria:\\n- Anaplastic or medullary thyroid cancer\\n- Known iodine allergy\\n- Active hyperthyroidism or thyroid storm history\\n- Pregnancy or breastfeeding\\n- Prior radioactive iodine treatment >2 times\\n- Family history of multiple endocrine neoplasia syndromes\\n- Significant cardiac arrhythmias documented\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Thyroid Cancer Post-Surgical Follow-up Study\n\nTrial ID: ENDO-2024-008\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "PULMO-2024-009 - Severe Asthma Biologic Therapy Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"PULMO-2024-009\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-65 years\\n- Physician-diagnosed severe persistent asthma\\n- FEV1 (Forced Expiratory Volume) <80% predicted\\n- FEV1/FVC ratio <0.70\\n- Bronchodilator reversibility \\u226512% and \\u2265200 mL\\n- Blood eosinophil count \\u2265300 cells/\\u03bcL\\n- IgE level 30-700 IU/mL\\n- FeNO (Fractional exhaled Nitric Oxide) >25 ppb\\n- Currently on high-dose inhaled corticosteroids\\n- Currently on long-acting beta-agonist (LABA)\\n- At least 2 asthma exacerbations in past year requiring oral corticosteroids\\n- Documented pulmonary function test (spirometry) report\\n- Active pulmonology care plan\\n- Influenza vaccination current\\n\\nExclusion Criteria:\\n- Known allergy to monoclonal antibodies\\n- Chronic obstructive pulmonary disease (COPD) diagnosis\\n- Active smoking (current or quit <6 months ago)\\n- History of anaphylaxis\\n- Significant bronchiectasis on CT scan\\n- Parasitic infection documented\\n- Family history of severe drug allergies\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Severe Asthma Biologic Therapy Study\n\nTrial ID: PULMO-2024-009\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "GASTRO-2024-010 - Inflammatory Bowel Disease Maintenance Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"GASTRO-2024-010\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-70 years\\n- Diagnosed with Crohn's disease or ulcerative colitis\\n- Moderate to severe disease activity: Mayo score 6-12 (UC) or CDAI 220-450 (Crohn's)\\n- C-reactive protein (CRP) \\u22655 mg/L\\n- Fecal calprotectin >250 \\u03bcg/g\\n- Hemoglobin 9-13 g/dL (anemia due to IBD)\\n- Albumin \\u22652.8 g/dL\\n- Currently on stable dose of 5-ASA or azathioprine\\n- Adequate bone marrow function: WBC \\u22653500/\\u03bcL\\n- Recent colonoscopy with biopsy diagnostic report\\n- Active gastroenterology care plan\\n- Hepatitis B vaccination completed\\n\\nExclusion Criteria:\\n- Known allergy to anti-TNF agents or JAK inhibitors\\n- Active Clostridium difficile infection\\n- Intestinal abscess or stricture documented\\n- Prior bowel surgery for stricture or perforation\\n- History of colonic dysplasia or cancer\\n- Tuberculosis: positive QuantiFERON test without completed treatment\\n- Family history of inflammatory bowel disease with complications\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Inflammatory Bowel Disease Maintenance Study\n\nTrial ID: GASTRO-2024-010\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "HEME-2024-011 - Multiple Myeloma Maintenance Therapy Trial",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"HEME-2024-011\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 40-80 years\\n- Diagnosed with multiple myeloma per IMWG criteria\\n- Post-autologous stem cell transplant (documented procedure)\\n- M-protein detectable in serum or urine\\n- Serum free light chain ratio abnormal (if non-secretory)\\n- Hemoglobin \\u22658 g/dL\\n- Platelet count \\u226575,000/\\u03bcL\\n- Absolute neutrophil count \\u22651000/\\u03bcL\\n- Creatinine clearance \\u226530 mL/min\\n- Calcium \\u226411 mg/dL\\n- Currently on lenalidomide maintenance therapy\\n- ECOG performance status 0-2\\n- Bone marrow biopsy diagnostic report within 6 months\\n- Active hematology-oncology care plan\\n- Pneumococcal and influenza vaccinations up-to-date\\n\\nExclusion Criteria:\\n- Known allergy to lenalidomide or thalidomide\\n- Active plasma cell leukemia\\n- Peripheral neuropathy grade \\u22653\\n- Prior allogeneic stem cell transplant\\n- Deep vein thrombosis within past 6 months\\n- Family history of thrombophilia\\n- Currently pregnant or breastfeeding\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Multiple Myeloma Maintenance Therapy Trial\n\nTrial ID: HEME-2024-011\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "IMMUNO-2024-012 - Systemic Lupus Erythematosus Biologic Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"IMMUNO-2024-012\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-65 years\\n- Diagnosed with Systemic Lupus Erythematosus (ACR or SLICC criteria)\\n- Active disease: SLEDAI score \\u22656\\n- Positive ANA (Antinuclear Antibody) titer \\u22651:80\\n- Anti-dsDNA antibody positive or anti-Smith antibody positive\\n- Complement C3 <90 mg/dL or C4 <10 mg/dL\\n- Proteinuria: UPCR 0.5-6.0 g/g\\n- Currently on stable dose of prednisone \\u226420 mg/day\\n- On hydroxychloroquine or immunosuppressant therapy\\n- Adequate bone marrow: WBC \\u22652500/\\u03bcL, Platelets \\u226550,000/\\u03bcL\\n- Negative pregnancy test\\n- Recent echocardiogram report (to exclude cardiac involvement)\\n- Active rheumatology care plan\\n- MMR vaccination documented\\n\\nExclusion Criteria:\\n- Known allergy to rituximab or belimumab\\n- Active lupus nephritis Class V\\n- CNS lupus with seizures or psychosis\\n- Severe thrombocytopenia: Platelets <30,000/\\u03bcL\\n- History of severe infections requiring hospitalization\\n- Live vaccines within past 4 weeks\\n- Family history of autoimmune disease with early mortality\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Systemic Lupus Erythematosus Biologic Study\n\nTrial ID: IMMUNO-2024-012\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "DERM-2024-013 - Moderate to Severe Psoriasis Systemic Therapy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"DERM-2024-013\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-70 years\\n- Plaque psoriasis for at least 6 months\\n- BSA (Body Surface Area) involvement \\u226510%\\n- PASI (Psoriasis Area and Severity Index) score \\u226512\\n- sPGA (static Physician Global Assessment) score \\u22653\\n- Failed topical therapy for at least 3 months\\n- Adequate bone marrow: WBC \\u22653500/\\u03bcL\\n- Adequate hepatic function: ALT and AST <2x ULN\\n- Negative QuantiFERON-TB Gold test\\n- Currently on systemic therapy (methotrexate or cyclosporine)\\n- Recent skin biopsy diagnostic report confirming psoriasis\\n- Active dermatology care plan\\n- Hepatitis B vaccination completed\\n\\nExclusion Criteria:\\n- Known allergy to biologic agents (anti-IL17, anti-IL23)\\n- Guttate, pustular, or erythrodermic psoriasis\\n- Active infection requiring systemic antibiotics\\n- History of malignancy (except treated basal cell carcinoma)\\n- Tuberculosis: untreated latent or active disease\\n- Currently pregnant or breastfeeding\\n- Family history of severe psoriatic arthritis\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Moderate to Severe Psoriasis Systemic Therapy\n\nTrial ID: DERM-2024-013\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "INFECT-2024-014 - Chronic Hepatitis C Direct-Acting Antiviral Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"INFECT-2024-014\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-75 years\\n- Chronic Hepatitis C infection (HCV RNA detectable)\\n- HCV genotype 1, 2, or 3\\n- Treatment-naive or prior interferon failure\\n- HCV RNA viral load >10,000 IU/mL\\n- Liver fibrosis stage F0-F3 (FibroScan <12.5 kPa)\\n- ALT \\u226410x ULN\\n- Total bilirubin \\u22642x ULN\\n- Albumin \\u22653.0 g/dL\\n- INR \\u22641.5\\n- Platelet count \\u226575,000/\\u03bcL\\n- Creatinine clearance \\u226550 mL/min\\n- Negative HIV antibody test\\n- Recent liver biopsy or elastography diagnostic report\\n- Active hepatology care plan\\n- Hepatitis A and B vaccination documented\\n\\nExclusion Criteria:\\n- Known allergy to direct-acting antivirals\\n- Decompensated cirrhosis: ascites, hepatic encephalopathy, variceal bleeding\\n- Hepatocellular carcinoma documented\\n- Co-infection with Hepatitis B or HIV\\n- Significant cardiac disease: QTc prolongation >500 ms\\n- Currently on prohibited drug interactions\\n- Family history of cirrhosis with hepatocellular carcinoma\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Chronic Hepatitis C Direct-Acting Antiviral Study\n\nTrial ID: INFECT-2024-014\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "GERI-2024-015 - Alzheimer's Disease Early Intervention Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"GERI-2024-015\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 60-85 years\\n- Diagnosed with mild cognitive impairment (MCI) or mild Alzheimer's dementia\\n- MMSE (Mini-Mental State Exam) score 18-26\\n- MoCA (Montreal Cognitive Assessment) score 15-24\\n- Positive amyloid PET scan or CSF biomarkers (A\\u03b242 <600 pg/mL, tau >300 pg/mL)\\n- CDR (Clinical Dementia Rating) 0.5 or 1\\n- Adequate visual and auditory function for testing\\n- Reliable caregiver available\\n- Currently on stable dose of cholinesterase inhibitor (donepezil or rivastigmine)\\n- Brain MRI diagnostic report excluding other causes\\n- Active neurology or geriatrics care plan\\n- Pneumococcal vaccination documented\\n\\nExclusion Criteria:\\n- Known allergy to amyloid-targeting antibodies\\n- Other causes of dementia: vascular, Lewy body, frontotemporal\\n- Significant depression: GDS >10\\n- History of seizures or epilepsy\\n- Recent stroke or TIA within 6 months\\n- MRI contraindications: pacemaker, metal implants\\n- Family history of autosomal dominant Alzheimer's disease\\n- Currently on memantine therapy\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Alzheimer's Disease Early Intervention Study\n\nTrial ID: GERI-2024-015\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "ORTHO-2024-016 - Osteoarthritis Knee Joint Injection Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"ORTHO-2024-016\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 45-75 years\\n- Diagnosed with knee osteoarthritis (Kellgren-Lawrence grade 2-3)\\n- Knee pain: VAS (Visual Analog Scale) \\u226540/100\\n- WOMAC (Western Ontario McMaster) pain subscale \\u22657\\n- Failed conservative management: PT, NSAIDs for at least 3 months\\n- BMI <40 kg/m2\\n- Adequate ambulation: able to walk 50 feet without assistive device\\n- Recent knee X-ray diagnostic report\\n- Active orthopedic care plan\\n\\nExclusion Criteria:\\n- Known allergy to hyaluronic acid or corticosteroids\\n- Intra-articular injection within past 3 months\\n- Active knee joint infection\\n- History of knee surgery within past 6 months\\n- Inflammatory arthritis: rheumatoid arthritis, gout\\n- Coagulopathy or on anticoagulation therapy\\n- Documented knee joint replacement planned within 6 months\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Osteoarthritis Knee Joint Injection Study\n\nTrial ID: ORTHO-2024-016\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "PSYCH-2024-017 - Major Depressive Disorder Treatment-Resistant Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"PSYCH-2024-017\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-65 years\\n- Diagnosed with Major Depressive Disorder per DSM-5 criteria\\n- Current major depressive episode \\u22652 years\\n- HAM-D (Hamilton Depression Rating Scale) score \\u226520\\n- PHQ-9 (Patient Health Questionnaire) score \\u226515\\n- Failed at least 2 adequate trials of antidepressants\\n- Currently on stable SSRI or SNRI for at least 6 weeks\\n- No active suicidal ideation (C-SSRS score <4)\\n- Thyroid function tests normal: TSH 0.5-5.0 mIU/L\\n- Vitamin B12 and folate levels adequate\\n- Active psychiatry care plan\\n- Documented psychiatric evaluation report\\n\\nExclusion Criteria:\\n- Known allergy to ketamine or esketamine\\n- Bipolar disorder or schizoaffective disorder diagnosis\\n- Active substance use disorder (except tobacco)\\n- History of psychosis\\n- Uncontrolled hypertension: BP >160/100 mmHg\\n- Increased intracranial pressure or recent head injury\\n- Family history of suicide completion\\n- Currently pregnant or breastfeeding\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Major Depressive Disorder Treatment-Resistant Study\n\nTrial ID: PSYCH-2024-017\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "REPRO-2024-018 - Polycystic Ovary Syndrome (PCOS) Fertility Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"REPRO-2024-018\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-40 years\\n- Female gender\\n- Diagnosed with PCOS (Rotterdam criteria)\\n- BMI 25-40 kg/m2\\n- Oligo-ovulation or anovulation documented\\n- Anti-M\\u00fcllerian hormone (AMH) >3.0 ng/mL\\n- Antral follicle count \\u226512 per ovary on ultrasound\\n- Fasting insulin >10 \\u03bcU/mL or HOMA-IR >2.5\\n- Total testosterone 50-150 ng/dL\\n- LH/FSH ratio >2:1\\n- Currently on metformin therapy\\n- Recent pelvic ultrasound diagnostic report\\n- Active reproductive endocrinology care plan\\n\\nExclusion Criteria:\\n- Known allergy to clomiphene citrate or letrozole\\n- Other causes of hyperandrogenism: congenital adrenal hyperplasia, Cushing's\\n- Tubal factor infertility documented\\n- Male factor infertility\\n- Currently pregnant or breastfeeding\\n- Uncontrolled diabetes: HbA1c >8%\\n- Family history of ovarian hyperstimulation syndrome\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Polycystic Ovary Syndrome (PCOS) Fertility Study\n\nTrial ID: REPRO-2024-018\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "URO-2024-019 - Benign Prostatic Hyperplasia Medical Management",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"URO-2024-019\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 50-80 years\\n- Male gender\\n- Diagnosed with benign prostatic hyperplasia (BPH)\\n- International Prostate Symptom Score (IPSS) \\u226515\\n- Prostate volume \\u226530 mL on ultrasound\\n- PSA (Prostate-Specific Antigen) 1.5-10 ng/mL\\n- Peak urinary flow rate (Qmax) <12 mL/s\\n- Post-void residual urine <300 mL\\n- Currently on alpha-blocker therapy (tamsulosin or alfuzosin)\\n- Adequate renal function: Creatinine <1.8 mg/dL\\n- Recent prostate MRI or ultrasound diagnostic report\\n- Active urology care plan\\n\\nExclusion Criteria:\\n- Known allergy to 5-alpha reductase inhibitors (finasteride, dutasteride)\\n- Prostate cancer documented on biopsy\\n- Urinary retention requiring catheterization\\n- History of prostate surgery: TURP or laser procedures\\n- Neurogenic bladder or urethral stricture\\n- Active urinary tract infection\\n- Hematuria of unknown etiology\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Benign Prostatic Hyperplasia Medical Management\n\nTrial ID: URO-2024-019\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "OPHTHAL-2024-020 - Age-Related Macular Degeneration Anti-VEGF Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"OPHTHAL-2024-020\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 55-90 years\\n- Diagnosed with wet (neovascular) age-related macular degeneration\\n- Visual acuity: 20/40 to 20/320 (ETDRS)\\n- Active choroidal neovascularization on OCT or fluorescein angiography\\n- Central retinal thickness \\u2265250 \\u03bcm on OCT\\n- Treatment-naive or prior anti-VEGF therapy completed >3 months ago\\n- Adequate lens clarity for fundus examination\\n- Recent OCT and fundus photography diagnostic reports\\n- Active ophthalmology care plan\\n\\nExclusion Criteria:\\n- Known allergy to bevacizumab, ranibizumab, or aflibercept\\n- Geographic atrophy without neovascularization\\n- Other causes of vision loss: diabetic retinopathy, glaucoma\\n- Prior vitrectomy or scleral buckle surgery\\n- Active ocular infection or inflammation\\n- Uncontrolled glaucoma: IOP >25 mmHg\\n- History of stroke or MI within past 6 months\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Age-Related Macular Degeneration Anti-VEGF Study\n\nTrial ID: OPHTHAL-2024-020\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    }
+  ]
+}

@@ -16,12 +16,22 @@ Each protocol includes criteria covering all 11 FHIR resources:
 """
 
 import json
+import os
 import time
-import boto3
+import requests
 from typing import Dict, List
 
-# AWS Configuration
-lambda_client = boto3.client('lambda', region_name='us-east-1')
+# API Configuration
+API_URL = "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria"
+
+# Get token from environment or use get_jwt_token.py --role studyadmin
+# Token expires in 60 minutes - set via: export ACCESS_TOKEN=$(python get_jwt_token.py --role studyadmin)
+ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
+
+if not ACCESS_TOKEN:
+    print("ERROR: ACCESS_TOKEN environment variable not set!")
+    print("Please run: export ACCESS_TOKEN=$(python get_jwt_token.py --role studyadmin)")
+    exit(1)
 
 # 40 Clinical Trial Protocols with comprehensive FHIR coverage
 PROTOCOLS = [
@@ -1169,13 +1179,13 @@ Exclusion Criteria:
 
 def send_to_parse_criteria(protocol: Dict) -> Dict:
     """
-    Send a protocol to the criteria parser Lambda function directly
+    Send a protocol to the criteria parser API
 
     Args:
         protocol: Dictionary with trial_id and criteria_text
 
     Returns:
-        Lambda response as dictionary
+        API response as dictionary
     """
     try:
         payload = {
@@ -1188,25 +1198,23 @@ def send_to_parse_criteria(protocol: Dict) -> Dict:
         print(f"Title: {protocol.get('title', 'N/A')}")
         print(f"{'='*80}")
 
-        # Invoke Lambda function directly
-        response = lambda_client.invoke(
-            FunctionName='TrialEnrollment-CriteriaParser',
-            InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
+        # Call API with authentication
+        headers = {
+            "Authorization": f"Bearer {ACCESS_TOKEN}",
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(
+            API_URL,
+            headers=headers,
+            json=payload,
+            timeout=300  # 5 minute timeout for Bedrock processing
         )
 
-        # Parse the response
-        response_payload = json.loads(response['Payload'].read())
+        # Check if request was successful
+        response.raise_for_status()
 
-        # Check if Lambda execution was successful
-        if response['StatusCode'] != 200:
-            raise Exception(f"Lambda invocation failed with status {response['StatusCode']}")
-
-        # Parse the body from Lambda response
-        if 'body' in response_payload:
-            result = json.loads(response_payload['body']) if isinstance(response_payload['body'], str) else response_payload['body']
-        else:
-            result = response_payload
+        result = response.json()
 
         print(f"✅ SUCCESS: {protocol['trial_id']}")
         if 'parsed_criteria' in result:
@@ -1227,6 +1235,19 @@ def send_to_parse_criteria(protocol: Dict) -> Dict:
             "response": result
         }
 
+    except requests.exceptions.HTTPError as e:
+        error_msg = f"{e.response.status_code} {e.response.reason}"
+        try:
+            error_detail = e.response.json()
+            error_msg += f": {error_detail.get('message', str(error_detail))}"
+        except:
+            error_msg += f": {e.response.text}"
+        print(f"❌ ERROR: {protocol['trial_id']} - {error_msg}")
+        return {
+            "trial_id": protocol["trial_id"],
+            "success": False,
+            "error": error_msg
+        }
     except Exception as e:
         print(f"❌ ERROR: {protocol['trial_id']} - {str(e)}")
         return {
@@ -1244,20 +1265,23 @@ def main():
     print("CLINICAL TRIAL PROTOCOL SEEDING SCRIPT")
     print("="*80)
     print(f"\nTotal protocols to process: {len(PROTOCOLS)}")
-    print(f"Lambda Function: TrialEnrollment-CriteriaParser")
+    print(f"API Endpoint: {API_URL}")
     print("\nStarting protocol processing...")
     print("="*80)
 
     results = []
 
-    for i, protocol in enumerate(PROTOCOLS, 1):
-        print(f"\n[{i}/{len(PROTOCOLS)}] Processing {protocol['trial_id']}...")
+    # Process only first 20 protocols
+    protocols_to_process = PROTOCOLS[:20]
+
+    for i, protocol in enumerate(protocols_to_process, 1):
+        print(f"\n[{i}/{len(protocols_to_process)}] Processing {protocol['trial_id']}...")
 
         result = send_to_parse_criteria(protocol)
         results.append(result)
 
         # Add delay between requests to avoid rate limiting
-        if i < len(PROTOCOLS):
+        if i < len(protocols_to_process):
             time.sleep(2)
 
     # Summary
@@ -1268,8 +1292,8 @@ def main():
     successful = [r for r in results if r['success']]
     failed = [r for r in results if not r['success']]
 
-    print(f"\n✅ Successful: {len(successful)}/{len(PROTOCOLS)}")
-    print(f"❌ Failed: {len(failed)}/{len(PROTOCOLS)}")
+    print(f"\n✅ Successful: {len(successful)}/{len(protocols_to_process)}")
+    print(f"❌ Failed: {len(failed)}/{len(protocols_to_process)}")
 
     if failed:
         print("\nFailed protocols:")

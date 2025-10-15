@@ -1,0 +1,593 @@
+{
+  "info": {
+    "name": "Clinical Trial Protocols - Parse Criteria API - Part 2",
+    "description": "Collection of 20 clinical trial protocols (Part 2 of 2) for seeding the criteria cache table.\n\n## Usage Instructions:\n\n1. **Set Collection Variables:**\n   - `base_url`: https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod\n   - `auth_token`: Get a fresh JWT token by running:\n     ```bash\n     cd infrastructure && python3 get_jwt_token.py --role studyadmin\n     ```\n     Copy the access token and paste it into the `auth_token` variable.\n\n2. **Authentication:**\n   - The collection is configured to use Bearer token authentication\n   - Token expires in 60 minutes - refresh if needed\n\n3. **Running Requests:**\n   - Each request takes 3-4 minutes to complete (Bedrock AI processing)\n   - Run requests one at a time or use Collection Runner with appropriate delays\n   - API Gateway timeout is 30 seconds, but Lambda continues processing\n\n4. **Expected Response:**\n   - Status: 200 OK\n   - Body contains parsed criteria with inclusion/exclusion criteria\n   - Criteria are automatically cached in DynamoDB\n\n## Protocol Coverage:\n\nThis collection includes comprehensive FHIR resource coverage:\n- Patient demographics (age, gender)\n- Conditions (diagnoses, cancer types/stages)\n- Observations (lab values, performance status)\n- Medications (current medications)\n- Procedures (prior treatments)\n- Allergies\n- Immunizations\n- Family history\n- Diagnostic reports\n- Care plans\n- Encounters\n\n## Notes:\n\n- Total protocols across both parts: 40\n- Each protocol has been carefully designed with realistic clinical criteria\n- Protocols cover diverse medical specialties",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "clinical-trial-seeding"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "Get token by running: cd infrastructure && python3 get_jwt_token.py --role studyadmin"
+    }
+  ],
+  "item": [
+    {
+      "name": "ENT-2024-021 - Chronic Rhinosinusitis with Nasal Polyps Biologic Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"ENT-2024-021\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-70 years\\n- Diagnosed with chronic rhinosinusitis with nasal polyps (CRSwNP)\\n- Bilateral nasal polyps (endoscopic grade \\u22652)\\n- Sino-Nasal Outcome Test (SNOT-22) score \\u226530\\n- Blood eosinophil count \\u2265300 cells/\\u03bcL\\n- IgE level 30-1500 IU/mL\\n- Failed medical therapy: intranasal corticosteroids and at least one course of oral steroids\\n- CT sinuses showing opacification\\n- Adequate sense of smell test: UPSIT score measurable\\n- Recent sinus CT diagnostic report\\n- Active ENT care plan\\n- Tetanus vaccination up-to-date\\n\\nExclusion Criteria:\\n- Known allergy to monoclonal antibodies (dupilumab, omalizumab)\\n- Cystic fibrosis diagnosis\\n- Aspirin-exacerbated respiratory disease with severe reactions\\n- Fungal sinusitis documented\\n- Prior sinus surgery within 3 months\\n- Active respiratory infection\\n- Immunodeficiency disorder documented\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Chronic Rhinosinusitis with Nasal Polyps Biologic Study\n\nTrial ID: ENT-2024-021\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "PAIN-2024-022 - Chronic Low Back Pain Non-Opioid Management",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"PAIN-2024-022\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 25-70 years\\n- Chronic low back pain >6 months duration\\n- Pain intensity: VAS \\u226550/100\\n- Oswestry Disability Index (ODI) \\u226530%\\n- Failed conservative treatment: PT, NSAIDs for at least 3 months\\n- MRI lumbar spine showing degenerative disc disease\\n- No radiculopathy: negative straight leg raise\\n- BMI <35 kg/m2\\n- Adequate mobility for functional assessments\\n- Recent lumbar spine MRI diagnostic report\\n- Active pain management care plan\\n\\nExclusion Criteria:\\n- Known allergy to gabapentinoids or SNRIs\\n- Opioid use >30 MME (morphine milligram equivalents) per day\\n- Spinal fracture or infection documented\\n- Prior lumbar spine surgery\\n- Active compensation or litigation\\n- Severe depression with suicidal ideation\\n- Substance use disorder documented\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Chronic Low Back Pain Non-Opioid Management\n\nTrial ID: PAIN-2024-022\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "ALLERGY-2024-023 - Peanut Allergy Oral Immunotherapy Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"ALLERGY-2024-023\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 4-17 years\\n- Physician-diagnosed peanut allergy\\n- Positive skin prick test to peanut (wheal \\u22653 mm)\\n- Peanut-specific IgE >0.35 kU/L\\n- Positive oral food challenge to peanut (reaction to \\u2264100 mg)\\n- History of allergic reaction to peanut within past year\\n- Adequate baseline spirometry: FEV1 \\u226580% predicted\\n- Currently carrying epinephrine auto-injector\\n- Recent allergist evaluation report\\n- Active allergy care plan\\n- All routine childhood vaccinations up-to-date\\n\\nExclusion Criteria:\\n- Known allergy to epinephrine\\n- Severe eosinophilic esophagitis\\n- Uncontrolled asthma: FEV1 <80%, frequent exacerbations\\n- History of anaphylaxis requiring ICU admission\\n- Other significant food allergies with anaphylaxis\\n- Mastocytosis or elevated baseline tryptase\\n- Active atopic dermatitis requiring systemic therapy\\n- Family history of anaphylactic reactions to immunotherapy\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Peanut Allergy Oral Immunotherapy Study\n\nTrial ID: ALLERGY-2024-023\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "SLEEP-2024-024 - Obstructive Sleep Apnea CPAP Adherence Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"SLEEP-2024-024\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 30-70 years\\n- Diagnosed with moderate to severe obstructive sleep apnea\\n- AHI (Apnea-Hypopnea Index) \\u226515 events/hour on polysomnography\\n- Oxygen desaturation index (ODI) \\u226510 events/hour\\n- Excessive daytime sleepiness: Epworth Sleepiness Scale \\u226510\\n- BMI 28-40 kg/m2\\n- CPAP-naive or poor adherence (<4 hours/night for >70% nights)\\n- Adequate cognitive function to use CPAP device\\n- Recent polysomnography diagnostic report\\n- Active sleep medicine care plan\\n\\nExclusion Criteria:\\n- Known allergy to CPAP mask materials\\n- Central sleep apnea (>50% central events)\\n- Severe COPD with chronic hypercapnia\\n- Recent myocardial infarction or unstable angina\\n- Prior upper airway surgery for OSA\\n- Significant nasal obstruction requiring surgery\\n- Severe claustrophobia preventing mask use\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Obstructive Sleep Apnea CPAP Adherence Study\n\nTrial ID: SLEEP-2024-024\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "TRAUMA-2024-025 - Post-Traumatic Stress Disorder Pharmacotherapy Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"TRAUMA-2024-025\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-65 years\\n- Diagnosed with PTSD per DSM-5 criteria\\n- Index trauma occurred at least 3 months ago\\n- PCL-5 (PTSD Checklist) score \\u226533\\n- CAPS-5 (Clinician-Administered PTSD Scale) \\u226525\\n- Currently engaged in evidence-based psychotherapy\\n- Failed at least one SSRI trial\\n- No active substance use (negative urine drug screen)\\n- Adequate hepatic function: ALT and AST <2x ULN\\n- Adequate renal function: Creatinine <1.5 mg/dL\\n- Active psychiatry or psychology care plan\\n- Recent psychiatric evaluation report\\n\\nExclusion Criteria:\\n- Known allergy to prazosin or other alpha-blockers\\n- Bipolar disorder or schizophrenia diagnosis\\n- Active suicidal ideation (C-SSRS score \\u22654)\\n- Severe alcohol use disorder\\n- Traumatic brain injury with cognitive impairment\\n- Hypotension: baseline BP <100/60 mmHg\\n- Currently pregnant or breastfeeding\\n- Family history of completed suicide\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Post-Traumatic Stress Disorder Pharmacotherapy Study\n\nTrial ID: TRAUMA-2024-025\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "ADDICTION-2024-026 - Opioid Use Disorder Medication-Assisted Treatment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"ADDICTION-2024-026\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-65 years\\n- Diagnosed with opioid use disorder (moderate to severe) per DSM-5\\n- Active opioid use or in early remission (<3 months)\\n- Positive urine drug screen for opioids\\n- Motivated for treatment: ready for medication-assisted therapy\\n- COWS (Clinical Opiate Withdrawal Scale) score available\\n- Adequate hepatic function: ALT and AST <5x ULN\\n- Hepatitis C screening completed (positive or negative acceptable)\\n- HIV screening completed\\n- Currently engaged with addiction medicine or psychiatry\\n- Recent comprehensive psychiatric evaluation report\\n- Active substance use disorder care plan\\n\\nExclusion Criteria:\\n- Known allergy to buprenorphine, naltrexone, or methadone\\n- Acute liver failure or decompensated cirrhosis\\n- Currently on long-term opioid therapy for chronic pain (prescribed)\\n- Severe benzodiazepine use disorder without medical supervision\\n- Active suicidal ideation\\n- Pregnancy without prenatal care established\\n- Severe psychiatric disorder requiring hospitalization\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Opioid Use Disorder Medication-Assisted Treatment\n\nTrial ID: ADDICTION-2024-026\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "PEDS-2024-027 - Pediatric Growth Hormone Deficiency Treatment Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"PEDS-2024-027\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 3-15 years\\n- Diagnosed with growth hormone deficiency\\n- Height <3rd percentile for age and gender\\n- Growth velocity <4 cm/year\\n- Bone age delayed by \\u22652 years\\n- IGF-1 (Insulin-like Growth Factor-1) <-2 SD for age\\n- Failed growth hormone stimulation test (peak GH <10 ng/mL)\\n- Normal thyroid function: TSH 0.5-5.0 mIU/L, Free T4 normal\\n- Brain MRI normal or showing pituitary hypoplasia\\n- No other causes of short stature\\n- Recent bone age X-ray and pituitary MRI diagnostic reports\\n- Active pediatric endocrinology care plan\\n- All recommended childhood vaccinations up-to-date\\n\\nExclusion Criteria:\\n- Known allergy to recombinant growth hormone (somatropin)\\n- Active malignancy or history of cancer\\n- Turner syndrome, Prader-Willi syndrome, or other genetic syndromes\\n- Severe scoliosis or intracranial hypertension\\n- Uncontrolled diabetes mellitus\\n- Family history of multiple endocrine neoplasia\\n- Closed epiphyses documented on X-ray\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Pediatric Growth Hormone Deficiency Treatment Study\n\nTrial ID: PEDS-2024-027\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "WOMEN-2024-028 - Endometriosis Pain Management Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"WOMEN-2024-028\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-45 years\\n- Female gender\\n- Surgically confirmed endometriosis (laparoscopy with biopsy)\\n- Moderate to severe pelvic pain: VAS \\u226550/100\\n- Dysmenorrhea requiring pain medication\\n- Failed NSAIDs and oral contraceptives for at least 3 months\\n- Regular menstrual cycles (21-35 days)\\n- CA-125 level available (may be elevated)\\n- Recent pelvic ultrasound or MRI diagnostic report\\n- Active gynecology care plan\\n- HPV vaccination completed\\n\\nExclusion Criteria:\\n- Known allergy to GnRH agonists or antagonists\\n- Currently pregnant or breastfeeding\\n- Desire for pregnancy within next 12 months\\n- Severe endometriosis with ovarian cysts requiring immediate surgery\\n- Other causes of pelvic pain: PID, fibroids\\n- Osteoporosis: T-score <-2.5 on DEXA scan\\n- Undiagnosed abnormal uterine bleeding\\n- Family history of early menopause or osteoporosis\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Endometriosis Pain Management Study\n\nTrial ID: WOMEN-2024-028\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "MEN-2024-029 - Male Hypogonadism Testosterone Replacement Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"MEN-2024-029\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 30-70 years\\n- Male gender\\n- Symptomatic hypogonadism: decreased libido, fatigue, erectile dysfunction\\n- Morning total testosterone <300 ng/dL (confirmed on 2 separate occasions)\\n- Free testosterone low for age\\n- LH and FSH levels available (to determine primary vs secondary)\\n- Adequate hemoglobin: Hgb 12-17 g/dL\\n- Hematocrit <50%\\n- PSA (Prostate-Specific Antigen) <4 ng/mL\\n- Normal digital rectal exam\\n- Recent PSA test and urinalysis reports\\n- Active endocrinology or urology care plan\\n\\nExclusion Criteria:\\n- Known allergy to testosterone formulations\\n- Prostate cancer or breast cancer documented\\n- Severe benign prostatic hyperplasia with urinary retention\\n- Untreated sleep apnea (AHI >15 without CPAP)\\n- Polycythemia: hematocrit >52%\\n- Congestive heart failure NYHA Class III-IV\\n- Recent MI or stroke within 6 months\\n- Desire for fertility preservation\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Male Hypogonadism Testosterone Replacement Study\n\nTrial ID: MEN-2024-029\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "BONE-2024-030 - Postmenopausal Osteoporosis Treatment Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"BONE-2024-030\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 50-80 years\\n- Female gender\\n- Postmenopausal status (>12 months since last menstrual period)\\n- Osteoporosis: T-score \\u2264-2.5 on DEXA scan (spine or hip)\\n- At least one fragility fracture, or high FRAX score (\\u226520% major, \\u22653% hip)\\n- Adequate vitamin D level: 25-OH vitamin D >20 ng/mL\\n- Serum calcium 8.5-10.5 mg/dL\\n- Adequate renal function: Creatinine clearance \\u226530 mL/min\\n- PTH within normal limits\\n- Recent DEXA scan diagnostic report\\n- Active endocrinology or rheumatology care plan\\n- Tetanus and zoster vaccinations up-to-date\\n\\nExclusion Criteria:\\n- Known allergy to bisphosphonates or denosumab\\n- Hypocalcemia: serum calcium <8.5 mg/dL\\n- Severe vitamin D deficiency: <12 ng/mL\\n- Esophageal abnormalities (for oral bisphosphonates)\\n- Atypical femur fracture or osteonecrosis of the jaw\\n- Active dental issues or planned dental procedures\\n- Hyperparathyroidism or Paget's disease\\n- Family history of hypocalcemia or rickets\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Postmenopausal Osteoporosis Treatment Study\n\nTrial ID: BONE-2024-030\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "VASCULAR-2024-031 - Peripheral Artery Disease Claudication Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"VASCULAR-2024-031\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 50-85 years\\n- Diagnosed with peripheral artery disease (PAD)\\n- Intermittent claudication: walking impairment questionnaire score \\u226525%\\n- Ankle-brachial index (ABI) 0.40-0.90\\n- Resting toe pressure >40 mmHg\\n- Peak walking time <12 minutes on treadmill test\\n- Currently on antiplatelet therapy (aspirin or clopidogrel)\\n- Currently on statin therapy\\n- Adequate renal function: eGFR \\u226530 mL/min/1.73m2\\n- Recent lower extremity arterial doppler diagnostic report\\n- Active vascular surgery care plan\\n\\nExclusion Criteria:\\n- Known allergy to cilostazol or pentoxifylline\\n- Critical limb ischemia with rest pain or tissue loss\\n- Recent lower extremity revascularization (<3 months)\\n- Congestive heart failure NYHA Class III-IV\\n- Recent MI or stroke within 6 months\\n- Exercise limitation due to non-vascular causes (arthritis, COPD)\\n- Uncontrolled diabetes: HbA1c >10%\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Peripheral Artery Disease Claudication Study\n\nTrial ID: VASCULAR-2024-031\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "AUTOIMMUNE-2024-032 - Myasthenia Gravis Immunosuppression Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"AUTOIMMUNE-2024-032\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-75 years\\n- Diagnosed with myasthenia gravis (confirmed with antibody testing)\\n- Acetylcholine receptor antibody positive or MuSK antibody positive\\n- MG-ADL (Myasthenia Gravis Activities of Daily Living) score \\u22653\\n- Generalized myasthenia (Class II-IV per MGFA classification)\\n- Currently on pyridostigmine (cholinesterase inhibitor)\\n- Failed or incomplete response to pyridostigmine alone\\n- Recent EMG with repetitive nerve stimulation diagnostic report\\n- Active neurology care plan\\n- Up-to-date pneumococcal and influenza vaccinations\\n\\nExclusion Criteria:\\n- Known allergy to corticosteroids or azathioprine\\n- Thymoma requiring immediate surgical intervention\\n- Myasthenic crisis requiring ICU care currently\\n- Recent thymectomy (<6 months)\\n- Severe immunosuppression or active infection\\n- Uncontrolled diabetes: HbA1c >9%\\n- Tuberculosis: positive QuantiFERON without treatment\\n- Family history of thymoma or autoimmune disease with complications\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Myasthenia Gravis Immunosuppression Study\n\nTrial ID: AUTOIMMUNE-2024-032\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "METABOLIC-2024-033 - Familial Hypercholesterolemia Lipid-Lowering Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"METABOLIC-2024-033\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-75 years\\n- Diagnosed with heterozygous familial hypercholesterolemia\\n- LDL cholesterol >190 mg/dL despite statin therapy\\n- Total cholesterol >300 mg/dL\\n- Family history of premature coronary artery disease (<55 years males, <65 females)\\n- Dutch Lipid Clinic Network score \\u22656 (definite or probable FH)\\n- Currently on maximum tolerated statin dose\\n- Triglycerides <400 mg/dL\\n- Adequate hepatic function: ALT and AST <3x ULN\\n- CK (Creatine Kinase) <5x ULN\\n- Recent lipid panel and genetic testing reports (if available)\\n- Active cardiology or lipid clinic care plan\\n\\nExclusion Criteria:\\n- Known allergy to PCSK9 inhibitors or ezetimibe\\n- Homozygous familial hypercholesterolemia\\n- Severe statin-induced myopathy (history of rhabdomyolysis)\\n- Active liver disease: cirrhosis or hepatitis\\n- Recent acute coronary syndrome (<3 months)\\n- Currently pregnant or breastfeeding\\n- Uncontrolled hypertension: BP >180/110 mmHg\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Familial Hypercholesterolemia Lipid-Lowering Study\n\nTrial ID: METABOLIC-2024-033\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "BLEEDING-2024-034 - Hemophilia A Factor Replacement Prophylaxis Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"BLEEDING-2024-034\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 12-65 years\\n- Diagnosed with moderate to severe Hemophilia A\\n- Factor VIII activity <5%\\n- At least 6 bleeding episodes in past 12 months\\n- At least 2 target joints with chronic arthropathy\\n- Currently on factor VIII replacement therapy (prophylaxis or on-demand)\\n- Adequate venous access for infusions\\n- No current inhibitor: Bethesda titer <0.6 BU\\n- Recent factor VIII level and inhibitor screening reports\\n- Active hematology care plan\\n- Hepatitis A and B vaccinations completed\\n\\nExclusion Criteria:\\n- Known allergy to recombinant factor VIII products\\n- High-titer inhibitors: Bethesda titer >5 BU\\n- Other bleeding disorders: von Willebrand disease, platelet disorders\\n- Active joint infection or septic arthritis\\n- HIV with CD4 count <200 (if applicable)\\n- Hepatitis C with decompensated cirrhosis\\n- Planned major surgery within next 3 months\\n- Family history of inhibitor development with severe complications\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Hemophilia A Factor Replacement Prophylaxis Study\n\nTrial ID: BLEEDING-2024-034\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "KIDNEY-2024-035 - IgA Nephropathy Immunosuppression Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"KIDNEY-2024-035\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-70 years\\n- Biopsy-proven IgA nephropathy\\n- Persistent proteinuria: UPCR >0.75 g/g despite ACE inhibitor/ARB therapy\\n- eGFR 30-90 mL/min/1.73m2\\n- Blood pressure controlled <130/80 mmHg\\n- Hematuria: >5 RBC/HPF on urinalysis\\n- Currently on maximum tolerated ACE inhibitor or ARB\\n- Adequate bone marrow: WBC \\u22653500/\\u03bcL\\n- Recent kidney biopsy pathology report\\n- Active nephrology care plan\\n\\nExclusion Criteria:\\n- Known allergy to corticosteroids or mycophenolate\\n- Rapidly progressive glomerulonephritis with crescents >50%\\n- Henoch-Sch\\u00f6nlein purpura (IgA vasculitis) as primary diagnosis\\n- Secondary IgA nephropathy (liver disease, celiac disease)\\n- Prior kidney transplant\\n- Active infection: hepatitis B, hepatitis C, HIV, or tuberculosis\\n- Currently pregnant or breastfeeding\\n- Family history of ESRD requiring transplant\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for IgA Nephropathy Immunosuppression Study\n\nTrial ID: KIDNEY-2024-035\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "CANCER-2024-036 - Metastatic Colorectal Cancer Chemotherapy Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"CANCER-2024-036\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-75 years\\n- Histologically confirmed colorectal adenocarcinoma\\n- Metastatic disease (Stage IV)\\n- Measurable disease per RECIST 1.1 criteria\\n- ECOG performance status 0-1\\n- Adequate bone marrow: Hemoglobin \\u22659 g/dL, ANC \\u22651500/\\u03bcL, Platelets \\u2265100,000/\\u03bcL\\n- Adequate hepatic function: Total bilirubin \\u22641.5x ULN, ALT and AST \\u22643x ULN\\n- Adequate renal function: Creatinine clearance \\u226550 mL/min\\n- Currently on or completed first-line chemotherapy (FOLFOX or FOLFIRI)\\n- Recent CT chest/abdomen/pelvis diagnostic report\\n- Recent colonoscopy with biopsy pathology report\\n- Active oncology care plan\\n- Influenza vaccination current\\n\\nExclusion Criteria:\\n- Known allergy to fluoropyrimidines, oxaliplatin, or irinotecan\\n- DPD (dihydropyrimidine dehydrogenase) deficiency documented\\n- Uncontrolled brain metastases\\n- Severe neuropathy: grade \\u22652\\n- Active inflammatory bowel disease\\n- Recent major surgery <4 weeks\\n- Gilbert's syndrome with severe hyperbilirubinemia\\n- Family history of colorectal cancer with Lynch syndrome complications\\n- Currently pregnant or breastfeeding\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Metastatic Colorectal Cancer Chemotherapy Study\n\nTrial ID: CANCER-2024-036\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "LIVER-2024-037 - Primary Biliary Cholangitis Ursodeoxycholic Acid Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"LIVER-2024-037\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 25-75 years\\n- Diagnosed with primary biliary cholangitis (PBC)\\n- Positive anti-mitochondrial antibody (AMA) titer \\u22651:40\\n- Elevated alkaline phosphatase >1.5x ULN\\n- GGT (Gamma-Glutamyl Transferase) elevated >2x ULN\\n- Total bilirubin <2.0 mg/dL (non-cirrhotic)\\n- ALT and AST <5x ULN\\n- Pruritus severity: VAS \\u226530/100\\n- Currently treatment-naive for PBC or on suboptimal UDCA dose\\n- Recent liver biopsy pathology report (if performed)\\n- Active hepatology care plan\\n- Hepatitis A and B vaccinations documented\\n\\nExclusion Criteria:\\n- Known allergy to ursodeoxycholic acid (UDCA)\\n- Decompensated cirrhosis: ascites, encephalopathy, variceal bleeding\\n- Hepatocellular carcinoma documented\\n- Overlap syndrome with autoimmune hepatitis\\n- Extrahepatic biliary obstruction on imaging\\n- Currently pregnant or breastfeeding\\n- Severe osteoporosis with fragility fractures\\n- Family history of PBC with liver transplantation\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Primary Biliary Cholangitis Ursodeoxycholic Acid Study\n\nTrial ID: LIVER-2024-037\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "PANCREAS-2024-038 - Chronic Pancreatitis Pain and Enzyme Replacement Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"PANCREAS-2024-038\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-70 years\\n- Diagnosed with chronic pancreatitis\\n- Recurrent abdominal pain: VAS \\u226540/100\\n- CT or MRI evidence of chronic pancreatitis (calcifications, ductal changes)\\n- Pancreatic exocrine insufficiency: fecal elastase <200 \\u03bcg/g stool\\n- Steatorrhea: fecal fat >7 g/day\\n- Elevated fasting glucose or diabetes mellitus due to pancreatic insufficiency\\n- Currently on pancreatic enzyme replacement therapy\\n- Adequate nutritional status: albumin >3.0 g/dL\\n- Fat-soluble vitamin levels: A, D, E, K measurable\\n- Recent pancreatic CT or MRI diagnostic report\\n- Active gastroenterology care plan\\n\\nExclusion Criteria:\\n- Known allergy to pancreatic enzyme products (porcine-derived)\\n- Acute pancreatitis episode within past 4 weeks\\n- Pancreatic cancer documented\\n- Severe malabsorption requiring TPN (total parenteral nutrition)\\n- Active alcohol use disorder (contraindication)\\n- Prior pancreatic surgery: Whipple or total pancreatectomy\\n- Uncontrolled diabetes: HbA1c >10%\\n- Fibrosing colonopathy (associated with high-dose enzymes)\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Chronic Pancreatitis Pain and Enzyme Replacement Study\n\nTrial ID: PANCREAS-2024-038\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "RARE-2024-039 - Gaucher Disease Enzyme Replacement Therapy Study",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"RARE-2024-039\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 2-65 years\\n- Diagnosed with Gaucher disease type 1 (confirmed by enzyme assay)\\n- Glucocerebrosidase enzyme activity <30% of normal\\n- Splenomegaly: spleen volume >5 multiples of normal (MN)\\n- Thrombocytopenia: platelet count <60,000/\\u03bcL\\n- Anemia: hemoglobin <11 g/dL\\n- Bone involvement: bone pain, bone crises, or avascular necrosis on MRI\\n- Chitotriosidase level elevated >1000 nmol/mL/hr\\n- Currently treatment-naive for enzyme replacement therapy\\n- Recent Gaucher cell identification in bone marrow biopsy report\\n- Active medical genetics or hematology care plan\\n- All age-appropriate vaccinations up-to-date\\n\\nExclusion Criteria:\\n- Known allergy to imiglucerase or other enzyme replacement therapies\\n- Gaucher disease type 2 or 3 (neuronopathic forms)\\n- Significant antibody development to ERT in past\\n- Severe liver disease: cirrhosis with hepatic dysfunction\\n- Active malignancy\\n- Severe immunodeficiency disorder\\n- Pregnancy (ERT decision requires specialist consultation)\\n- Family history of severe Gaucher complications with poor ERT response\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Gaucher Disease Enzyme Replacement Therapy Study\n\nTrial ID: RARE-2024-039\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    },
+    {
+      "name": "VACCINE-2024-040 - Influenza Vaccine Immunogenicity in Immunocompromised Patients",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trial_id\": \"VACCINE-2024-040\",\n  \"criteria_text\": \"\\nInclusion Criteria:\\n- Age 18-80 years\\n- Immunocompromised status: on immunosuppressive therapy or with immunodeficiency\\n- Conditions: HIV with CD4 200-500, solid organ transplant recipients, or on biologic therapies\\n- Willing to receive high-dose or adjuvanted influenza vaccine\\n- Adequate baseline immune function for vaccine response assessment\\n- CD4 count \\u2265200 cells/\\u03bcL (if HIV)\\n- HIV viral load <1000 copies/mL (if HIV)\\n- Adequate bone marrow: WBC \\u22652000/\\u03bcL\\n- No acute illness or fever >100.4\\u00b0F at vaccination\\n- Recent immunology panel and lymphocyte subset analysis report\\n- Active infectious disease or immunology care plan\\n- Vaccination record documented\\n\\nExclusion Criteria:\\n- Known allergy to eggs, influenza vaccine components, or previous severe reaction\\n- Guillain-Barr\\u00e9 syndrome within 6 weeks of prior influenza vaccine\\n- Received influenza vaccine in current season already\\n- Active severe immunodeficiency: CD4 <200 or severe combined immunodeficiency\\n- Active acute infection requiring antibiotics\\n- Recent live vaccine administration within past 4 weeks\\n- Febrile illness within past week\\n- Family history of severe vaccine reactions\\n- Currently pregnant in first trimester (relative exclusion)\\n\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/parse-criteria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "parse-criteria"
+          ]
+        },
+        "description": "Parse criteria for Influenza Vaccine Immunogenicity in Immunocompromised Patients\n\nTrial ID: VACCINE-2024-040\n\nThis request will take 3-4 minutes to complete due to Bedrock AI processing."
+      },
+      "response": []
+    }
+  ]
+}
