@@ -21,8 +21,8 @@ import os
 import time
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from decimal import Decimal
 import boto3
-import urllib3
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
@@ -32,20 +32,35 @@ tracer = Tracer()
 # Initialize AWS clients
 lambda_client = boto3.client('lambda')
 dynamodb = boto3.resource('dynamodb')
-http = urllib3.PoolManager()
 
 # Configuration
 SECTION_CLASSIFIER_FUNCTION = os.environ.get(
     'SECTION_CLASSIFIER_FUNCTION',
     'TrialEnrollment-SectionClassifier'
 )
-PARSE_CRITERIA_API_ENDPOINT = os.environ.get(
-    'PARSE_CRITERIA_API_ENDPOINT',
-    'https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/parse-criteria'
-)
 CRITERIA_CACHE_TABLE = os.environ.get('CRITERIA_CACHE_TABLE', 'CriteriaCacheTable')
 MAX_RETRIES = int(os.environ.get('MAX_RETRIES', '3'))
 RETRY_DELAY_SECONDS = int(os.environ.get('RETRY_DELAY_SECONDS', '2'))
+
+
+def convert_floats_to_decimal(obj):
+    """
+    Recursively convert float values to Decimal for DynamoDB compatibility.
+
+    Args:
+        obj: Object to convert (can be dict, list, or primitive)
+
+    Returns:
+        Object with floats converted to Decimal
+    """
+    if isinstance(obj, list):
+        return [convert_floats_to_decimal(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: convert_floats_to_decimal(value) for key, value in obj.items()}
+    elif isinstance(obj, float):
+        return Decimal(str(obj))
+    else:
+        return obj
 
 
 @tracer.capture_method
@@ -112,49 +127,49 @@ def invoke_section_classifier(
 
 
 @tracer.capture_method
-def call_parse_criteria_api(
+def invoke_criteria_parser(
     trial_id: str,
     criteria_text: str
 ) -> Optional[Dict[str, Any]]:
     """
-    Call parse-criteria API to convert criteria to FHIR format.
+    Invoke Criteria Parser Lambda directly to convert criteria to FHIR format.
 
     Args:
         trial_id: Clinical trial identifier
         criteria_text: Formatted criteria text (Inclusion/Exclusion)
 
     Returns:
-        Parse-criteria API response with FHIR resources
+        Criteria Parser response with FHIR resources
     """
-    payload = {
-        'trial_id': trial_id,
-        'criteria_text': criteria_text
+    event = {
+        'body': json.dumps({
+            'trial_id': trial_id,
+            'criteria_text': criteria_text
+        })
     }
 
-    logger.info(f"Calling parse-criteria API for trial: {trial_id}")
+    logger.info(f"Invoking Criteria Parser Lambda for trial: {trial_id}")
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            response = http.request(
-                'POST',
-                PARSE_CRITERIA_API_ENDPOINT,
-                body=json.dumps(payload),
-                headers={'Content-Type': 'application/json'},
-                timeout=30.0
+            response = lambda_client.invoke(
+                FunctionName='TrialEnrollment-CriteriaParser',
+                InvocationType='RequestResponse',
+                Payload=json.dumps(event)
             )
 
-            if response.status == 200:
-                result = json.loads(response.data.decode('utf-8'))
+            payload = json.loads(response['Payload'].read())
+
+            if payload.get('statusCode') == 200:
+                body = json.loads(payload['body'])
                 logger.info(
-                    f"Parse-criteria API success: "
-                    f"{len(result.get('parsed_criteria', []))} criteria parsed"
+                    f"Criteria Parser success: "
+                    f"{len(body.get('parsed_criteria', []))} criteria parsed"
                 )
-                return result
+                return body
             else:
-                logger.error(
-                    f"Parse-criteria API error (status {response.status}): "
-                    f"{response.data.decode('utf-8')}"
-                )
+                error = json.loads(payload.get('body', '{}'))
+                logger.error(f"Criteria Parser error: {error}")
 
                 if attempt < MAX_RETRIES:
                     logger.info(f"Retrying... (attempt {attempt + 1}/{MAX_RETRIES})")
@@ -164,7 +179,7 @@ def call_parse_criteria_api(
                 return None
 
         except Exception as e:
-            logger.error(f"Parse-criteria API call error: {str(e)}")
+            logger.error(f"Criteria Parser invocation error: {str(e)}")
 
             if attempt < MAX_RETRIES:
                 logger.info(f"Retrying... (attempt {attempt + 1}/{MAX_RETRIES})")
@@ -221,6 +236,9 @@ def store_results_in_dynamodb(
             'processing_status': 'completed',
             'ttl': int(time.time()) + (90 * 24 * 60 * 60)  # 90 days TTL
         }
+
+        # Convert all float values to Decimal for DynamoDB compatibility
+        item = convert_floats_to_decimal(item)
 
         table.put_item(Item=item)
 
@@ -376,21 +394,21 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
                 })
             }
 
-        # Step 2: Call parse-criteria API
-        logger.info("Step 2/3: Parsing criteria with parse-criteria API")
+        # Step 2: Invoke Criteria Parser Lambda
+        logger.info("Step 2/3: Parsing criteria with Criteria Parser Lambda")
         formatted_criteria = criteria_data.get('formatted_text', '')
 
         if not formatted_criteria:
-            logger.warning("No formatted criteria available, skipping parse-criteria API")
+            logger.warning("No formatted criteria available, skipping Criteria Parser")
             parsed_data = {'parsed_criteria': [], 'fhir_resources': {}}
         else:
-            parsed_data = call_parse_criteria_api(trial_id, formatted_criteria)
+            parsed_data = invoke_criteria_parser(trial_id, formatted_criteria)
 
             if not parsed_data:
                 return {
                     'statusCode': 500,
                     'body': json.dumps({
-                        'error': 'Parse-criteria API failed',
+                        'error': 'Criteria Parser Lambda failed',
                         'trial_id': trial_id
                     })
                 }
