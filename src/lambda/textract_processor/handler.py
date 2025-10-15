@@ -867,7 +867,13 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
             record = event['Records'][0]
             s3_bucket = record['s3']['bucket']['name']
             s3_key = record['s3']['object']['key']
-            trial_id = s3_key.replace('.pdf', '').split('/')[-1]
+            # Extract trial_id from folder structure: protocols/TRIAL-XXXXX/filename.pdf
+            # Split by '/' and get the second-to-last element (folder name)
+            s3_key_parts = s3_key.split('/')
+            if len(s3_key_parts) >= 2:
+                trial_id = s3_key_parts[-2]  # Get the folder name (TRIAL-XXXXX)
+            else:
+                trial_id = s3_key.replace('.pdf', '').split('/')[-1]  # Fallback to filename
             logger.info(f"Triggered by S3 event: s3://{s3_bucket}/{s3_key}")
         else:
             # Direct invocation format

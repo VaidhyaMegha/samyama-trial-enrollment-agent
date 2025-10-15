@@ -252,6 +252,7 @@ class TrialEnrollmentAgentStack(Stack):
             memory_size=256,
             environment={
                 "CRITERIA_CACHE_TABLE": criteria_cache_table.table_name,
+                "PROTOCOLS_BUCKET": protocol_bucket.bucket_name,
                 "POWERTOOLS_SERVICE_NAME": "protocol-manager",
                 "LOG_LEVEL": "INFO"
             },
@@ -260,6 +261,7 @@ class TrialEnrollmentAgentStack(Stack):
 
         # Grant permissions
         criteria_cache_table.grant_read_data(protocol_manager_function)
+        protocol_bucket.grant_read_write(protocol_manager_function)
 
         # Patient Manager Lambda for managing patients and FHIR data
         patient_manager_function = lambda_.Function(
@@ -301,6 +303,42 @@ class TrialEnrollmentAgentStack(Stack):
 
         # Grant DynamoDB permissions to Match Manager
         matches_table.grant_read_write_data(match_manager_function)
+
+        # Admin Manager Lambda for system administration
+        admin_manager_function = lambda_.Function(
+            self, "AdminManagerFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=lambda_.Code.from_asset("../src/lambda/admin_manager"),
+            handler="handler.lambda_handler",
+            function_name="TrialEnrollment-AdminManager",
+            timeout=Duration.seconds(60),
+            memory_size=512,
+            environment={
+                "CRITERIA_CACHE_TABLE": criteria_cache_table.table_name,
+                "MATCHES_TABLE": matches_table.table_name,
+                "S3_BUCKET": protocol_bucket.bucket_name,
+                "POWERTOOLS_SERVICE_NAME": "admin-manager",
+                "LOG_LEVEL": "INFO"
+                # TEXTRACT_FUNCTION and CLASSIFIER_FUNCTION set later after they're defined
+            },
+            log_retention=logs.RetentionDays.ONE_WEEK
+        )
+
+        # Grant permissions to Admin Manager
+        criteria_cache_table.grant_read_write_data(admin_manager_function)
+        matches_table.grant_read_data(admin_manager_function)
+        # Allow Admin Manager to read CloudWatch logs
+        admin_manager_function.add_to_role_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "logs:DescribeLogStreams",
+                    "logs:GetLogEvents",
+                    "logs:FilterLogEvents"
+                ],
+                resources=[f"arn:aws:logs:{self.region}:{self.account}:log-group:/aws/lambda/*"]
+            )
+        )
 
         # Protocol Orchestrator Lambda (declare first, used by Textract Processor)
         protocol_orchestrator_function = lambda_.Function(
@@ -386,8 +424,34 @@ class TrialEnrollmentAgentStack(Stack):
         # Grant permissions to Protocol Orchestrator
         # Allow orchestrator to invoke Section Classifier
         section_classifier_function.grant_invoke(protocol_orchestrator_function)
+        # Allow orchestrator to invoke Criteria Parser
+        criteria_parser_function.grant_invoke(protocol_orchestrator_function)
         # Allow orchestrator to read/write DynamoDB
         criteria_cache_table.grant_read_write_data(protocol_orchestrator_function)
+
+        # NOTE: Admin Manager environment variables for Textract and Classifier
+        # are hardcoded to avoid circular dependency issues with CDK
+        admin_manager_function.add_environment(
+            "TEXTRACT_FUNCTION",
+            "TrialEnrollment-TextractProcessor"
+        )
+        admin_manager_function.add_environment(
+            "CLASSIFIER_FUNCTION",
+            "TrialEnrollment-SectionClassifier"
+        )
+
+        # Grant invoke permissions to Admin Manager (using wildcard to avoid circular dependency)
+        admin_manager_function.add_to_role_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["lambda:InvokeFunction"],
+                resources=[
+                    f"arn:aws:lambda:{self.region}:{self.account}:function:TrialEnrollment-TextractProcessor",
+                    f"arn:aws:lambda:{self.region}:{self.account}:function:TrialEnrollment-SectionClassifier"
+                ]
+            )
+        )
+        protocol_bucket.grant_read_write(admin_manager_function)
 
         # ========================================
         # API Gateway
@@ -497,6 +561,24 @@ class TrialEnrollmentAgentStack(Stack):
             authorization_type=apigw.AuthorizationType.CUSTOM
         )
 
+        # GET /protocols/{id}/status - Get protocol processing status
+        protocol_status_resource = protocol_id_resource.add_resource("status")
+        protocol_status_resource.add_method(
+            "GET",
+            protocol_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # POST /protocols/upload-url - Get pre-signed S3 URL for upload
+        protocols_upload_url_resource = protocols_resource.add_resource("upload-url")
+        protocols_upload_url_resource.add_method(
+            "POST",
+            protocol_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
         # Update Protocol Orchestrator with API endpoint
         protocol_orchestrator_function.add_environment(
             "PARSE_CRITERIA_API_ENDPOINT",
@@ -582,6 +664,74 @@ class TrialEnrollmentAgentStack(Stack):
         match_id_resource.add_method(
             "DELETE",
             match_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # Admin endpoints (protected - StudyAdmin only via authorizer)
+        admin_resource = api.root.add_resource("admin")
+        admin_manager_integration = apigw.LambdaIntegration(admin_manager_function)
+
+        # GET /admin/dashboard - System metrics and overview
+        dashboard_resource = admin_resource.add_resource("dashboard")
+        dashboard_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /admin/processing-status - Pipeline processing status
+        processing_status_resource = admin_resource.add_resource("processing-status")
+        processing_status_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /admin/logs - System logs from CloudWatch
+        logs_resource = admin_resource.add_resource("logs")
+        logs_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /admin/audit-trail - Audit trail for compliance
+        audit_trail_resource = admin_resource.add_resource("audit-trail")
+        audit_trail_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # GET /admin/trials - List all trials with admin details
+        trials_resource = admin_resource.add_resource("trials")
+        trials_resource.add_method(
+            "GET",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # DELETE /admin/trials/{id} - Delete trial (admin only)
+        trial_id_resource = trials_resource.add_resource("{id}")
+        trial_id_resource.add_method(
+            "DELETE",
+            admin_manager_integration,
+            authorizer=token_authorizer,
+            authorization_type=apigw.AuthorizationType.CUSTOM
+        )
+
+        # POST /admin/reprocess/{id} - Reprocess failed trial
+        reprocess_resource = admin_resource.add_resource("reprocess")
+        reprocess_id_resource = reprocess_resource.add_resource("{id}")
+        reprocess_id_resource.add_method(
+            "POST",
+            admin_manager_integration,
             authorizer=token_authorizer,
             authorization_type=apigw.AuthorizationType.CUSTOM
         )
@@ -672,6 +822,12 @@ class TrialEnrollmentAgentStack(Stack):
             self, "MatchesTableName",
             value=matches_table.table_name,
             description="DynamoDB table for patient-protocol matches"
+        )
+
+        CfnOutput(
+            self, "AdminManagerFunctionName",
+            value=admin_manager_function.function_name,
+            description="Admin Manager Lambda function name"
         )
 
         CfnOutput(
