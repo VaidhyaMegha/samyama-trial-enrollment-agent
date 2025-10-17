@@ -166,9 +166,10 @@ Our AI agent demonstrates:
 
 - [X] **URL to Deployed Project**
 
-  - **Frontend URL:** https://d25df0kqd06e10.cloudfront.net
+  - **Frontend URL:** https://enrollment.samyama.care
+  - **CloudFront Distribution:** https://d25df0kqd06e10.cloudfront.net
   - **API Endpoint:** https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/
-  - **Status:** ✅ Fully deployed and operational
+  - **Status:** ✅ Fully deployed and operational with custom domain
 
 ---
 
@@ -262,7 +263,7 @@ Our AI agent demonstrates:
 
    - GitHub Repository 1 (Frontend): https://github.com/VaidhyaMegha/trial-compass-pro
    - GitHub Repository 2 (Backend): https://github.com/VaidhyaMegha/aws-trial-enrollment-agent
-   - Live Demo: https://d25df0kqd06e10.cloudfront.net
+   - Live Demo: https://enrollment.samyama.care
    - Video Demo: [YouTube URL - to be added]
 
    **Description:**
@@ -917,7 +918,7 @@ Monitoring:
 ### Completed
 
 - ✅ Project fully developed and deployed
-- ✅ Frontend: https://d25df0kqd06e10.cloudfront.net
+- ✅ Frontend: https://enrollment.samyama.care (custom domain)
 - ✅ Backend: API Gateway + 10 Lambda functions
 - ✅ Mistral Large 2 integration via Bedrock
 - ✅ Three user personas (CRC, StudyAdmin, PI)
@@ -925,6 +926,7 @@ Monitoring:
 - ✅ Samyama.ai branding integrated
 - ✅ GitHub repositories public
 - ✅ Git workflow (feature branch + PR)
+- ✅ Custom domain setup with Route 53
 
 ### In Progress
 
