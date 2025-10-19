@@ -348,13 +348,14 @@ Check patient eligibility with AI reasoning.
 
 Watch our **3-minute demo** showcasing the complete workflow:
 
-> 📺 **Demo video coming soon!** Recording in progress for AWS AI Agent Hackathon 2025 submission.
->
-> The video will demonstrate:
-> - All three user personas (CRC, StudyAdmin, PI)
-> - Protocol upload and AI processing pipeline
-> - Patient eligibility checking with Mistral Large 2 reasoning
-> - Real-time match results with confidence scores
+[![Watch Demo Video](https://img.shields.io/badge/▶-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/watch?v=skKkjhaM_Iw)
+
+**Video Highlights:**
+- All three user personas (CRC, StudyAdmin, PI)
+- Protocol upload and AI processing pipeline
+- Patient eligibility checking with Mistral Large 2 reasoning
+- Real-time match results with confidence scores
+- Complete end-to-end workflow demonstration
 
 ---
 
@@ -480,7 +481,9 @@ This project was built for the AWS AI Agent Global Hackathon 2025. Contributions
 
 ## 📄 License
 
-This project is licensed under the MIT License. For commercial use or questions about licensing, please contact the project maintainers.
+MIT License - See [LICENSE](LICENSE) file for details.
+
+For commercial use or questions about licensing, please contact the project maintainers.
 
 ---
 
