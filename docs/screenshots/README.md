@@ -237,10 +237,10 @@ This directory contains 15 high-quality screenshots showcasing the AWS Trial Enr
 
 ### 5. Technical Documentation
 
-#### `09-pdf-export-sampl.png`
+#### `09-pdf-export-sample.png`
 **Professional PDF Export with Samyama Branding**
 
-![PDF Export](09-pdf-export-sampl.png)
+![PDF Export](09-pdf-export-sample.png)
 
 **Key Highlights:**
 - Samyama.ai branded report
@@ -304,7 +304,7 @@ Based on impact and hackathon judging criteria, here are the **must-include** sc
 6. **`12-pi-dashboard.png`** - PI persona, executive overview
 7. **`15-architecture-diagram.png`** ⭐ - **Complete AWS architecture**
 8. **`06-patient-selection.png`** - HealthLake FHIR integration
-9. **`09-pdf-export-sampl.png`** - Professional output
+9. **`09-pdf-export-sample.png`** - Professional output
 10. **`13-pi-trials-screen.png`** - Trial portfolio management
 
 ---
@@ -336,7 +336,7 @@ Based on impact and hackathon judging criteria, here are the **must-include** sc
 - Narration: "PI reviews matches and approves enrollment..."
 
 **[2:30-2:45] Output**
-- Show: **`09-pdf-export-sampl.png`**
+- Show: **`09-pdf-export-sample.png`**
 - Narration: "Export professional reports for IRB submission..."
 
 **[2:45-3:00] Impact & CTA**
