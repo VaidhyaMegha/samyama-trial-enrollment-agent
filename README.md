@@ -10,9 +10,35 @@
 
 **AI-Powered Clinical Trial Patient Matching with Amazon Bedrock (Mistral Large 2)**
 
-[Live Demo](https://enrollment.samyama.care) • [Frontend Repo](https://github.com/VaidhyaMegha/trial-compass-pro) • [AWS Hackathon](https://aws-agent-hackathon.devpost.com/)
+[Live Demo](https://enrollment.samyama.care) • [Frontend Repo](https://github.com/VaidhyaMegha/samyama-trial-enrollment-app) • [AWS Hackathon](https://aws-agent-hackathon.devpost.com/)
 
 </div>
+
+---
+
+## 📑 Table of Contents
+
+- [Overview](#-overview)
+- [Architecture](#️-architecture)
+- [Key Features](#-key-features)
+- [Technology Stack](#️-technology-stack)
+- [FHIR Resource Support](#-fhir-resource-support)
+- [Quick Start](#-quick-start)
+- [Project Structure](#-project-structure)
+- [Testing](#-testing)
+- [API Endpoints](#-api-endpoints)
+- [Demo Video](#-demo-video)
+- [Live Deployment](#-live-deployment)
+- [AWS Hackathon Compliance](#-aws-hackathon-compliance)
+- [Impact & Value](#-impact--value)
+- [Compliance & Security](#-compliance--security)
+- [Roadmap](#️-roadmap)
+- [Use Cases](#-use-cases)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Documentation](#-documentation)
+- [Acknowledgments](#-acknowledgments)
+- [Contact](#-contact)
 
 ---
 
@@ -163,8 +189,8 @@ Supports **11 FHIR R4 resource types** for comprehensive patient data:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/VaidhyaMegha/aws-trial-enrollment-agent.git
-cd aws-trial-enrollment-agent
+git clone https://github.com/VaidhyaMegha/samyama-trial-enrollment-agent.git
+cd samyama-trial-enrollment-agent
 
 # 2. Create virtual environment
 python -m venv venv
@@ -199,10 +225,9 @@ python3 upload_to_healthlake.py
 ## 📦 Project Structure
 
 ```
-aws-trial-enrollment-agent/
+samyama-trial-enrollment-agent/
 ├── docs/                             # Documentation
 │   ├── PROTOCOL_PROCESSING_GUIDE.md  # Protocol processing guide
-│   ├── DEMO_VIDEO_SCRIPT.md          # 3-minute demo video script
 │   ├── screenshots/                  # 15 demo screenshots
 │   └── AWS Hackathon Idea _ v1.md    # Original concept
 ├── src/                              # Source code
@@ -323,9 +348,13 @@ Check patient eligibility with AI reasoning.
 
 Watch our **3-minute demo** showcasing the complete workflow:
 
-[![Demo Video](https://img.shields.io/badge/▶-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://youtube.com/your-video-link)
-
-**Script available**: [docs/DEMO_VIDEO_SCRIPT.md](docs/DEMO_VIDEO_SCRIPT.md)
+> 📺 **Demo video coming soon!** Recording in progress for AWS AI Agent Hackathon 2025 submission.
+>
+> The video will demonstrate:
+> - All three user personas (CRC, StudyAdmin, PI)
+> - Protocol upload and AI processing pipeline
+> - Patient eligibility checking with Mistral Large 2 reasoning
+> - Real-time match results with confidence scores
 
 ---
 
@@ -337,6 +366,16 @@ Watch our **3-minute demo** showcasing the complete workflow:
 - API Gateway: `https://gt7dlyqj78.execute-api.us-east-1.amazonaws.com/prod/`
 - CloudFront Distribution: `https://d25df0kqd06e10.cloudfront.net`
 - HealthLake Datastore: `8640ed6b344b85e4729ac42df1c7d00e`
+
+> **⚠️ Demo Environment Notice**
+>
+> This is a demonstration deployment for the AWS AI Agent Hackathon 2025:
+> - All patient data is **synthetic** (generated via Synthea - no real PHI)
+> - Demo accounts are isolated with **no production data access**
+> - Test credentials are for **demonstration purposes only**
+> - For hackathon evaluation and testing only
+>
+> To run your own instance, follow the [Quick Start](#-quick-start) guide or contact project maintainers for setup assistance.
 
 ---
 
@@ -441,14 +480,13 @@ This project was built for the AWS AI Agent Global Hackathon 2025. Contributions
 
 ## 📄 License
 
-MIT License - See [LICENSE](LICENSE) file for details
+This project is licensed under the MIT License. For commercial use or questions about licensing, please contact the project maintainers.
 
 ---
 
 ## 📚 Documentation
 
 - [Protocol Processing Guide](docs/PROTOCOL_PROCESSING_GUIDE.md)
-- [Demo Video Script](docs/DEMO_VIDEO_SCRIPT.md)
 - [AWS Hackathon Submission Guide](todo/AWS_HACKATHON_SUBMISSION_GUIDE.md)
 - [Screenshots Gallery](docs/screenshots/README.md)
 
@@ -469,8 +507,8 @@ MIT License - See [LICENSE](LICENSE) file for details
 **Organization**: Samyama.ai
 
 **GitHub**:
-- Backend: [aws-trial-enrollment-agent](https://github.com/VaidhyaMegha/aws-trial-enrollment-agent)
-- Frontend: [trial-compass-pro](https://github.com/VaidhyaMegha/trial-compass-pro)
+- Backend: [samyama-trial-enrollment-agent](https://github.com/VaidhyaMegha/samyama-trial-enrollment-agent)
+- Frontend: [samyama-trial-enrollment-app](https://github.com/VaidhyaMegha/samyama-trial-enrollment-app)
 
 **Live Demo**: [enrollment.samyama.care](https://enrollment.samyama.care)
 
@@ -485,6 +523,6 @@ MIT License - See [LICENSE](LICENSE) file for details
 ![FHIR R4](https://img.shields.io/badge/FHIR-R4%20Compliant-00897B?style=flat)
 ![HIPAA](https://img.shields.io/badge/HIPAA-Eligible-4CAF50?style=flat)
 
-**[⭐ Star this repo](https://github.com/VaidhyaMegha/aws-trial-enrollment-agent) • [🔗 Live Demo](https://enrollment.samyama.care) • [📺 Watch Video](#)**
+**[⭐ Star this repo](https://github.com/VaidhyaMegha/samyama-trial-enrollment-agent) • [🔗 Live Demo](https://enrollment.samyama.care) • [📺 Demo Video](#-demo-video)**
 
 </div>
