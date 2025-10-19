@@ -1,8 +1,8 @@
-# AWS Trial Enrollment System - Backend
+# Samyama's Clinical Trial Enrollment Agent - Backend
 
 <div align="center">
 
-![AWS Trial Enrollment System](https://img.shields.io/badge/AWS-AI%20Agent-orange?style=for-the-badge&logo=amazon-aws)
+![Samyama Clinical Trial Enrollment](https://img.shields.io/badge/Samyama-Trial%20Enrollment%20Agent-orange?style=for-the-badge)
 ![Bedrock](https://img.shields.io/badge/Amazon-Bedrock-232F3E?style=for-the-badge&logo=amazon-aws)
 ![Mistral Large 2](https://img.shields.io/badge/Mistral-Large%202-FF6B6B?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)
@@ -44,7 +44,7 @@
 
 ## 🎯 Overview
 
-**AWS Trial Enrollment System** is an autonomous AI agent that revolutionizes clinical trial enrollment by automating patient-trial matching. Built for the **AWS AI Agent Global Hackathon 2025**, this system reduces enrollment time from **weeks to minutes** using intelligent automation powered by **Amazon Bedrock with Mistral Large 2**.
+**Samyama's Clinical Trial Enrollment Agent** is an autonomous AI agent that revolutionizes clinical trial enrollment by automating patient-trial matching. Built for the **AWS AI Agent Global Hackathon 2025**, this system reduces enrollment time from **weeks to minutes** using intelligent automation powered by **Amazon Bedrock with Mistral Large 2**.
 
 ### The Problem
 
